@@ -1,0 +1,1 @@
+{"rewrites":[{"source":"/backend/:path*","destination":"https://smartgumastha-backend-production.up.railway.app/:path*"}]}
