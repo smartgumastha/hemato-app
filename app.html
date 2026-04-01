@@ -5975,92 +5975,133 @@ function printBillReceipt() {
 }
 
 /* ── Print Bill HTML ────────────────────────────────────────────── */
-function printBillHTML(bill) {
-  var items = bill.items || [];
+function printBillHTML(printData) {
+  var h = appState.hospital || {};
+  var printFormat = h.print_format || 'a5';
+  var pageWidth = printFormat === 'thermal' ? '80mm' : '148mm';
+  var pageHeight = printFormat === 'thermal' ? 'auto' : '210mm';
+
+  var logoHtml = '';
+  if (h.logo_url || h.logo) {
+    logoHtml = '<img src="' + (h.logo_url || h.logo) + '" style="max-height:50px;max-width:180px;display:block;margin:0 auto 8px;">';
+  }
+
+  var hospitalName = h.name || (appState.loginData || {}).hospital_name || 'Hospital';
+  var tagline = h.tagline ? '<div style="font-size:10px;color:#666;font-style:italic;text-align:center;margin-bottom:4px;">' + h.tagline + '</div>' : '';
+
+  var addressParts = [];
+  if (h.address) addressParts.push(h.address);
+  if (h.city) addressParts.push(h.city);
+  if (h.state) addressParts.push(h.state);
+  if (h.pincode) addressParts.push(h.pincode);
+  var addressLine = addressParts.length ? '<div style="font-size:10px;color:#444;text-align:center;">' + addressParts.join(', ') + '</div>' : '';
+
+  var contactParts = [];
+  if (h.phone) contactParts.push('Ph: ' + h.phone);
+  if (h.email) contactParts.push(h.email);
+  var contactLine = contactParts.length ? '<div style="font-size:10px;color:#444;text-align:center;margin-bottom:8px;">' + contactParts.join(' | ') + '</div>' : '';
+
+  /* Normalize field names — callers may use bill_number or billNumber etc */
+  var items = printData.items || [];
   if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
-  var hosp = appState.hospital || {};
-  var loginD = appState.loginData || {};
-  var hospName = hosp.name || loginD.hospital_name || 'Hospital';
-  var hospAddr = [hosp.address, hosp.city, hosp.state, hosp.pincode].filter(Boolean).join(', ') || '';
-  var hospPhone = hosp.phone || loginD.phone || '';
-  var hospGstin = hosp.gstin || '';
-  var txnRef = bill.transaction_ref || '';
-  if (!txnRef && bill.notes) {
-    var txnMatch = (bill.notes || '').match(/Txn:\s*(\S+)/);
-    if (txnMatch) txnRef = txnMatch[1];
-  }
+  var billNumber = printData.billNumber || printData.bill_number || 'DRAFT';
+  var billDate = printData.date || formatDate(printData.created_at || printData.bill_date || Date.now());
+  var patientName = printData.patientName || printData.patient_name || 'Walk-in';
+  var uhid = printData.uhid || printData.patient_uhid || '';
+  var subtotal = Number(printData.subtotal || 0);
+  var discount = Number(printData.discount || 0);
+  var gstAmount = Number(printData.gst || printData.gst_amount || 0);
+  var total = Number(printData.total || printData.total_amount || 0);
+  var paid = Number(printData.paid || printData.amount_paid || 0);
+  var balance = Number(printData.balance || 0);
+  var paymentMode = printData.paymentMode || printData.payment_mode || 'Cash';
+  var txnRef = printData.transaction_ref || '';
+  if (!txnRef && printData.notes) { var txnM = (printData.notes || '').match(/Txn:\s*(\S+)/); if (txnM) txnRef = txnM[1]; }
 
-  var h = '<!DOCTYPE html><html><head><title>Bill ' + (bill.bill_number || '') + '</title>';
-  h += '<style>';
-  h += 'body{font-family:Arial,Helvetica,sans-serif;max-width:380px;margin:0 auto;padding:16px;font-size:13px;color:#000}';
-  h += '.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:12px}';
-  h += '.hdr h2{font-size:22px;font-weight:900;margin:0 0 4px;text-transform:uppercase;letter-spacing:1px}';
-  h += '.hdr p{margin:2px 0;font-size:12px;color:#000}';
-  h += '.info{display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px;color:#000}';
-  h += 'table{width:100%;border-collapse:collapse;margin:10px 0}';
-  h += 'th{text-align:left;font-size:11px;font-weight:700;border:1px solid #000;padding:5px 6px;background:#f0f0f0}';
-  h += 'th:nth-child(2){text-align:center;width:40px}th:nth-child(3),th:nth-child(4){text-align:right}';
-  h += 'td{padding:5px 6px;border:1px solid #000;font-size:12px;color:#000}';
-  h += 'td:nth-child(2){text-align:center}td:nth-child(3),td:nth-child(4){text-align:right}';
-  h += '.totals{border-top:2px solid #000;padding-top:10px;margin-top:6px}';
-  h += '.totals .row{display:flex;justify-content:space-between;padding:3px 0;font-size:13px}';
-  h += '.totals .grand{font-size:18px;font-weight:900;border-top:2px solid #000;padding-top:8px;margin-top:6px}';
-  h += '.footer{text-align:center;border-top:2px solid #000;padding-top:12px;margin-top:18px;font-size:13px;color:#000;font-weight:600}';
-  h += '.footer small{font-size:10px;font-weight:400;color:#666}';
-  h += '@media print{body{margin:0;padding:8px;-webkit-print-color-adjust:exact}}';
-  h += '</style></head><body>';
-
-  h += '<div class="hdr">';
-  h += '<h2>' + hospName + '</h2>';
-  if (hospAddr) h += '<p>' + hospAddr + '</p>';
-  if (hospPhone) h += '<p>Phone: ' + hospPhone + '</p>';
-  if (hospGstin) h += '<p>GSTIN: ' + hospGstin + '</p>';
-  h += '</div>';
-
-  h += '<div class="info"><div><strong>Invoice:</strong> ' + (bill.bill_number || 'DRAFT') + '</div><div><strong>Date:</strong> ' + formatDate(bill.created_at || bill.bill_date || Date.now()) + '</div></div>';
-  h += '<div class="info"><div><strong>Patient:</strong> ' + (bill.patient_name || 'Walk-in') + '</div>';
-  if (bill.patient_uhid) h += '<div><strong>UHID:</strong> ' + bill.patient_uhid + '</div>';
-  h += '</div>';
-
-  h += '<table><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>';
+  var itemsHtml = '';
   for (var i = 0; i < items.length; i++) {
-    var it = items[i];
-    var qty = it.qty || it.quantity || 1;
-    var rate = it.rate || it.price || 0;
-    var gst = it.gst_pct || it.gstPct || 0;
-    var amt = qty * rate;
-    h += '<tr><td>' + (it.desc || it.description || it.name || '-') + (gst > 0 ? ' <small>(' + gst + '%)</small>' : '') + '</td>';
-    h += '<td>' + qty + '</td>';
-    h += '<td>\u20B9' + Number(rate).toLocaleString('en-IN') + '</td>';
-    h += '<td>\u20B9' + amt.toFixed(2) + '</td></tr>';
+    var item = items[i];
+    var qty = item.qty || item.quantity || 1;
+    var rate = item.rate || item.price || 0;
+    var amt = item.amount || (qty * rate);
+    var gstPct = item.gst_pct || item.gstPct || 0;
+    itemsHtml += '<tr>' +
+      '<td style="padding:4px 6px;border-bottom:1px solid #eee;font-size:12px;">' + (i + 1) + '</td>' +
+      '<td style="padding:4px 6px;border-bottom:1px solid #eee;font-size:12px;">' + (item.desc || item.description || item.name || '-') + (gstPct > 0 ? ' <small>(' + gstPct + '%)</small>' : '') + '</td>' +
+      '<td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:center;font-size:12px;">' + qty + '</td>' +
+      '<td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:right;font-size:12px;">\u20B9' + Number(rate).toLocaleString('en-IN') + '</td>' +
+      '<td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:right;font-size:12px;">\u20B9' + Number(amt).toLocaleString('en-IN') + '</td>' +
+      '</tr>';
   }
-  h += '</tbody></table>';
 
-  h += '<div class="totals">';
-  h += '<div class="row"><span>Subtotal</span><span>\u20B9' + Number(bill.subtotal || 0).toFixed(2) + '</span></div>';
-  if (Number(bill.discount || 0) > 0) h += '<div class="row"><span>Discount</span><span>-\u20B9' + Number(bill.discount).toFixed(2) + '</span></div>';
-  if (Number(bill.gst_amount || 0) > 0) {
-    h += '<div class="row"><span>CGST</span><span>\u20B9' + (Number(bill.gst_amount) / 2).toFixed(2) + '</span></div>';
-    h += '<div class="row"><span>SGST</span><span>\u20B9' + (Number(bill.gst_amount) / 2).toFixed(2) + '</span></div>';
+  var discountHtml = '';
+  if (discount > 0) {
+    discountHtml = '<tr><td colspan="4" style="text-align:right;padding:4px 6px;font-size:12px;color:#dc2626;">Discount:</td><td style="text-align:right;padding:4px 6px;font-size:12px;color:#dc2626;">-\u20B9' + discount.toLocaleString('en-IN') + '</td></tr>';
   }
-  h += '<div class="row grand"><span>GRAND TOTAL</span><span>\u20B9' + Number(bill.total || bill.total_amount || 0).toFixed(2) + '</span></div>';
-  h += '<div class="row"><span>Payment Mode</span><span style="text-transform:uppercase;font-weight:700">' + (bill.payment_mode || 'Cash') + '</span></div>';
-  if (txnRef) h += '<div class="row"><span>Txn Ref</span><span>' + txnRef + '</span></div>';
-  if (Number(bill.paid || 0) > 0) h += '<div class="row"><span>Amount Paid</span><span>\u20B9' + Number(bill.paid).toFixed(2) + '</span></div>';
-  if (Number(bill.balance || 0) > 0) h += '<div class="row" style="font-weight:700"><span>Balance Due</span><span>\u20B9' + Number(bill.balance).toFixed(2) + '</span></div>';
-  h += '</div>';
 
-  h += '<div class="footer"><p>Thank you for visiting!</p><p><small>Powered by Hemato HMS</small></p></div>';
-  h += '</body></html>';
-
-  var w = window.open('', '_blank', 'width=420,height=700');
-  if (!w || w.closed) {
-    alert('Please allow popups for this site to auto-print receipts.\nGo to browser settings > Site permissions > Pop-ups > Allow.');
-    return;
+  var gstHtml = '';
+  if (gstAmount > 0) {
+    gstHtml = '<tr><td colspan="4" style="text-align:right;padding:4px 6px;font-size:12px;">CGST:</td><td style="text-align:right;padding:4px 6px;font-size:12px;">\u20B9' + (gstAmount / 2).toFixed(2) + '</td></tr>';
+    gstHtml += '<tr><td colspan="4" style="text-align:right;padding:4px 6px;font-size:12px;">SGST:</td><td style="text-align:right;padding:4px 6px;font-size:12px;">\u20B9' + (gstAmount / 2).toFixed(2) + '</td></tr>';
   }
-  w.document.write(h);
-  w.document.close();
-  setTimeout(function() { w.print(); }, 500);
+
+  var txnHtml = txnRef ? '<div style="font-size:10px;color:#444;text-align:center;">Txn Ref: ' + txnRef + '</div>' : '';
+  var paidHtml = '';
+  if (paid > 0 && paid < total) {
+    paidHtml = '<div style="font-size:11px;text-align:center;color:#444;">Paid: \u20B9' + paid.toLocaleString('en-IN') + ' | Balance: \u20B9' + balance.toLocaleString('en-IN') + '</div>';
+  }
+
+  var footerText = h.bill_footer || 'Thank you for your visit!';
+  var termsText = h.bill_terms || '';
+  var gstinText = h.gstin ? '<div style="font-size:9px;color:#888;text-align:center;margin-top:8px;">GSTIN: ' + h.gstin + '</div>' : '';
+  var regText = h.reg_number ? '<div style="font-size:9px;color:#888;text-align:center;">Reg No: ' + h.reg_number + '</div>' : '';
+
+  var html = '<!DOCTYPE html><html><head><title>Bill ' + billNumber + '</title>' +
+    '<style>@media print { @page { size: ' + pageWidth + ' ' + pageHeight + '; margin: 8mm; } body { margin:0; } }</style>' +
+    '</head><body style="font-family:Arial,sans-serif;max-width:' + pageWidth + ';margin:0 auto;padding:12px;">' +
+    logoHtml +
+    '<div style="text-align:center;font-size:16px;font-weight:700;margin-bottom:2px;">' + hospitalName + '</div>' +
+    tagline + addressLine + contactLine +
+    '<hr style="border:none;border-top:1px solid #333;margin:8px 0;">' +
+    '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">' +
+      '<div style="font-size:12px;"><strong>Bill #:</strong> ' + billNumber + '</div>' +
+      '<div style="font-size:12px;"><strong>Date:</strong> ' + billDate + '</div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">' +
+      '<div style="font-size:12px;"><strong>Patient:</strong> ' + patientName + '</div>' +
+      (uhid ? '<div style="font-size:12px;"><strong>UHID:</strong> ' + uhid + '</div>' : '') +
+    '</div>' +
+    '<table style="width:100%;border-collapse:collapse;">' +
+      '<thead><tr style="background:#f8f8f8;">' +
+        '<th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">#</th>' +
+        '<th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">Item</th>' +
+        '<th style="padding:4px 6px;text-align:center;font-size:11px;border-bottom:2px solid #333;">Qty</th>' +
+        '<th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">Rate</th>' +
+        '<th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">Amount</th>' +
+      '</tr></thead><tbody>' + itemsHtml + '</tbody>' +
+      '<tfoot>' +
+        '<tr><td colspan="4" style="text-align:right;padding:6px;font-size:12px;">Subtotal:</td><td style="text-align:right;padding:6px;font-size:12px;">\u20B9' + subtotal.toLocaleString('en-IN') + '</td></tr>' +
+        discountHtml + gstHtml +
+        '<tr style="border-top:2px solid #333;"><td colspan="4" style="text-align:right;padding:6px;font-size:14px;font-weight:700;">TOTAL:</td><td style="text-align:right;padding:6px;font-size:14px;font-weight:700;">\u20B9' + total.toLocaleString('en-IN') + '</td></tr>' +
+      '</tfoot>' +
+    '</table>' +
+    '<div style="margin-top:8px;padding:6px;background:#f9f9f9;border-radius:4px;">' +
+      '<div style="font-size:11px;color:#444;text-align:center;">Paid via: ' + paymentMode.toUpperCase() + '</div>' +
+      txnHtml + paidHtml +
+    '</div>' +
+    (termsText ? '<div style="font-size:9px;color:#888;margin-top:8px;text-align:center;">' + termsText + '</div>' : '') +
+    '<div style="font-size:11px;color:#333;text-align:center;margin-top:12px;font-style:italic;">' + footerText + '</div>' +
+    gstinText + regText +
+    '</body></html>';
+
+  var win = window.open('', '_blank');
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+    setTimeout(function() { win.print(); }, 300);
+  } else {
+    showToast('Please allow popups for this site to print receipts', 'warning');
+  }
 }
 
 /* ── Payment badge helpers ────────────────────────────────────── */
