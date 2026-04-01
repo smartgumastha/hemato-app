@@ -748,6 +748,37 @@ table.mw-table tr:hover td { background: var(--mw-bg); }
 .bill-pay-btn.active { background:var(--mw-primary);color:#fff;border-color:var(--mw-primary);font-weight:600; }
 .bill-item-row td { padding:4px 6px;vertical-align:middle; }
 .bill-item-row input { border:1px solid var(--mw-border);border-radius:4px;padding:4px 6px;font-size:12px;font-family:var(--mw-font);width:100%; }
+/* Payment mode badges */
+.pay-badge{display:inline-block;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:600;text-transform:capitalize}
+.pay-cash{background:#D1FAE5;color:#065F46}
+.pay-upi{background:#DBEAFE;color:#1E40AF}
+.pay-card{background:#EDE9FE;color:#5B21B6}
+.pay-insurance{background:#FEF3C7;color:#92400E}
+.pay-online{background:#E0E7FF;color:#3730A3}
+.pay-pending{background:#FEE2E2;color:#991B1B}
+.pay-credit{background:#FEE2E2;color:#991B1B}
+/* Status badges for bills */
+.bill-status-paid{background:#D1FAE5;color:#065F46}
+.bill-status-pending{background:#FEF3C7;color:#92400E}
+.bill-status-partial{background:#FEE2E2;color:#991B1B}
+.bill-status-cancelled{background:#F3F4F6;color:#6B7280;text-decoration:line-through}
+/* Collection report cards */
+.stat-card-col{background:var(--mw-surface);border:1px solid var(--mw-border);border-radius:var(--mw-radius-lg);padding:16px;text-align:center}
+.stat-col-value{font-size:22px;font-weight:700;color:var(--mw-text-1);font-family:var(--mw-font-mono)}
+.stat-col-label{font-size:11px;color:var(--mw-text-3);margin-top:2px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
+/* Bill detail modal items */
+.bd-row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px}
+.bd-label{color:var(--mw-text-2)}
+.bd-value{font-weight:600}
+.bd-items-table{width:100%;border-collapse:collapse;margin:12px 0}
+.bd-items-table th{text-align:left;font-size:11px;color:var(--mw-text-3);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--mw-border);text-transform:uppercase;letter-spacing:0.5px}
+.bd-items-table td{padding:8px;font-size:13px;border-bottom:1px solid var(--mw-border)}
+.bd-items-table td:last-child,.bd-items-table th:last-child{text-align:right}
+/* Print styles */
+@media print{
+  body>*{display:none!important}
+  #printFrame{display:block!important;position:fixed;inset:0;z-index:99999;background:#fff}
+}
 .abha-step {
   flex:1;text-align:center;padding:6px 4px;font-size:11px;font-weight:500;
   color:var(--mw-text-3);border-bottom:2px solid var(--mw-border);
@@ -1361,6 +1392,7 @@ table.mw-table tr:hover td { background: var(--mw-bg); }
                 <option value="paid">Paid</option>
                 <option value="pending">Pending</option>
                 <option value="partial">Partial</option>
+                <option value="cancelled">Cancelled</option>
               </select>
             </div>
             <table class="mw-table">
@@ -1506,6 +1538,84 @@ table.mw-table tr:hover td { background: var(--mw-bg); }
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ============ COLLECTION REPORT SCREEN ============ -->
+      <div class="screen" id="screenCollections">
+        <div class="section-header">
+          <div class="section-title">Collection Report</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" id="colTabDaily" onclick="showColTab('daily')" style="background:var(--mw-primary);color:#fff;border:none">Daily</button>
+            <button class="btn btn-outline btn-sm" id="colTabMonthly" onclick="showColTab('monthly')">Monthly</button>
+          </div>
+        </div>
+
+        <!-- Daily View -->
+        <div id="colDailyView">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <input type="date" id="colDailyDate" style="border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:8px 12px;font-size:14px;font-family:var(--mw-font)" onchange="loadDailyCollection()">
+            <button class="btn btn-outline btn-sm" onclick="printDailyReport()">&#128438; Print</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="colDailyCards">
+            <div class="stat-card-col"><div class="stat-col-value" id="colTotalAmt">&#8377;0</div><div class="stat-col-label">Total Collection</div></div>
+            <div class="stat-card-col"><div class="stat-col-value" id="colCashAmt">&#8377;0</div><div class="stat-col-label">Cash</div></div>
+            <div class="stat-card-col"><div class="stat-col-value" id="colUpiAmt">&#8377;0</div><div class="stat-col-label">UPI</div></div>
+            <div class="stat-card-col"><div class="stat-col-value" id="colCardAmt">&#8377;0</div><div class="stat-col-label">Card</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+            <div class="stat-card-col"><div class="stat-col-value" id="colInsAmt">&#8377;0</div><div class="stat-col-label">Insurance</div></div>
+            <div class="stat-card-col"><div class="stat-col-value" id="colBillCount">0</div><div class="stat-col-label">Bills</div></div>
+            <div class="stat-card-col"><div class="stat-col-value" id="colPatientCount">0</div><div class="stat-col-label">Patients</div></div>
+          </div>
+          <div class="table-wrap">
+            <table class="mw-table">
+              <thead><tr><th>Bill #</th><th>Patient</th><th>Amount</th><th>Payment</th><th>Status</th><th>Time</th></tr></thead>
+              <tbody id="colDailyTableBody">
+                <tr><td colspan="6" class="empty-state" style="padding:30px"><div class="empty-state-text">Select a date to view collection</div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Monthly View -->
+        <div id="colMonthlyView" style="display:none">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <input type="month" id="colMonthPicker" style="border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:8px 12px;font-size:14px;font-family:var(--mw-font)" onchange="loadMonthlyCollection()">
+            <button class="btn btn-outline btn-sm" onclick="exportMonthlyCSV()">&#128190; Export CSV</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="colMonthlyCards">
+            <div class="stat-card-col"><div class="stat-col-value" id="colMonthTotal">&#8377;0</div><div class="stat-col-label">Total Revenue</div></div>
+            <div class="stat-card-col"><div class="stat-col-value" id="colMonthCash">&#8377;0</div><div class="stat-col-label">Cash</div></div>
+            <div class="stat-card-col"><div class="stat-col-value" id="colMonthUpi">&#8377;0</div><div class="stat-col-label">UPI</div></div>
+            <div class="stat-card-col"><div class="stat-col-value" id="colMonthCard">&#8377;0</div><div class="stat-col-label">Card</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px">
+            <div class="stat-card-col"><div class="stat-col-value" id="colMonthBills">0</div><div class="stat-col-label">Total Bills</div></div>
+            <div class="stat-card-col"><div class="stat-col-value" id="colMonthPatients">0</div><div class="stat-col-label">Total Patients</div></div>
+          </div>
+          <div class="table-wrap">
+            <table class="mw-table">
+              <thead><tr><th>Date</th><th>Bills</th><th>Cash</th><th>UPI</th><th>Card</th><th>Insurance</th><th>Total</th></tr></thead>
+              <tbody id="colMonthlyTableBody">
+                <tr><td colspan="7" class="empty-state" style="padding:30px"><div class="empty-state-text">Select a month to view collection</div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ BILL DETAIL MODAL ============ -->
+      <div class="modal-overlay" id="billDetailModal">
+        <div class="modal" style="max-width:700px;max-height:90vh;overflow-y:auto">
+          <div class="modal-title" style="display:flex;justify-content:space-between;align-items:center">
+            <span id="billDetailTitle">Bill Details</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-outline btn-sm" onclick="printBillReceipt()">&#128438; Print</button>
+              <button class="btn btn-ghost btn-sm" onclick="closeBillDetail()">&times;</button>
+            </div>
+          </div>
+          <div id="billDetailContent"></div>
         </div>
       </div>
 
@@ -2465,18 +2575,19 @@ tat_dashboard:   { label:'TAT Analytics', section:'insights', screen:'screenTatD
   whatsapp_ai:  { label: 'WhatsApp AI',   section: 'ai', screen: 'screenWhatsappAi',  icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>' },
 
   // --- ANALYTICS & COMPLIANCE ---
+  collections:  { label: 'Collections',   section: 'insights', screen: 'screenCollections',   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>' },
   analytics:    { label: 'Analytics',     section: 'insights', screen: 'screenAnalytics',    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
   platform:     { label: 'Platform Apps', section: 'insights', screen: 'screenPlatform',     icon: '🌐', core: true },
 };
 
 /* Plan → module bundles. Super Admin can also add individual modules. */
 var PLAN_MODULES = {
-  pharmacy:     ['appointments', 'pharmacy', 'billing'],
-  lis:          ['appointments', 'lis', 'billing'],
+  pharmacy:     ['appointments', 'pharmacy', 'billing', 'collections'],
+  lis:          ['appointments', 'lis', 'billing', 'collections'],
   whatsapp_ai:  ['whatsapp_ai'],
-  clinic:       ['appointments', 'emr', 'pharmacy', 'billing'],
-  teledoc:      ['appointments', 'emr', 'teledoc', 'whatsapp_ai', 'billing'],
-  hospital:     ['appointments', 'emr', 'pharmacy', 'lis', 'teledoc', 'whatsapp_ai', 'ipd', 'analytics', 'billing'],
+  clinic:       ['appointments', 'emr', 'pharmacy', 'billing', 'collections'],
+  teledoc:      ['appointments', 'emr', 'teledoc', 'whatsapp_ai', 'billing', 'collections'],
+  hospital:     ['appointments', 'emr', 'pharmacy', 'lis', 'teledoc', 'whatsapp_ai', 'ipd', 'analytics', 'billing', 'collections'],
 };
 
 var SECTION_LABELS = {
@@ -3003,6 +3114,7 @@ function showScreen(screenId) {
   if (screenId === 'screenPatients') loadPatients();
   if (screenId === 'screenStaff') loadStaff();
   if (screenId === 'screenBilling') loadBills();
+  if (screenId === 'screenCollections') initCollections();
   if (screenId === 'screenEmr') { document.getElementById('emrQueueView').style.display = 'block'; document.getElementById('emrConsultView').style.display = 'none'; loadEmrQueue(); }
   if (screenId === 'screenSettings') { loadSettings(); loadRoles(); }
 }
@@ -5136,16 +5248,20 @@ function renderBillTable(bills) {
   var html = '';
   for (var i = 0; i < bills.length; i++) {
     var b = bills[i];
-    var statusClass = b.payment_status === 'paid' ? 'active' : b.payment_status === 'partial' ? 'nabh' : 'trial';
-    var itemCount = b.items ? (Array.isArray(b.items) ? b.items.length : 1) : '—';
+    var payClass = getPayBadgeClass(b.payment_mode);
+    var statusClass = getBillStatusClass(b.payment_status);
+    var bItems = b.items || [];
+    if (typeof bItems === 'string') { try { bItems = JSON.parse(bItems); } catch(e) { bItems = []; } }
+    var itemCount = Array.isArray(bItems) ? bItems.length : 1;
+    var patName = b.patient_name || b.patient_first_name || 'Walk-in';
     html += '<tr>';
     html += '<td style="font-family:var(--mw-font-mono);font-size:12px;color:var(--mw-primary)">' + (b.bill_number || b.id || '—') + '</td>';
-    html += '<td><strong>' + (b.patient_name || b.patient_first_name || '—') + '</strong></td>';
+    html += '<td><strong>' + patName + '</strong></td>';
     html += '<td style="font-size:12px;color:var(--mw-text-3)">' + itemCount + ' item(s)</td>';
-    html += '<td>₹' + Number(b.subtotal || 0).toLocaleString('en-IN') + '</td>';
-    html += '<td style="font-size:12px">₹' + Number(b.gst_amount || 0).toLocaleString('en-IN') + '</td>';
-    html += '<td style="font-weight:600">₹' + Number(b.total || b.total_amount || b.amount || 0).toLocaleString('en-IN') + '</td>';
-    html += '<td><span class="status-badge ' + statusClass + '">' + (b.payment_mode || b.payment_status || '—') + '</span></td>';
+    html += '<td>\u20B9' + Number(b.subtotal || 0).toLocaleString('en-IN') + '</td>';
+    html += '<td style="font-size:12px">\u20B9' + Number(b.gst_amount || 0).toLocaleString('en-IN') + '</td>';
+    html += '<td style="font-weight:600">\u20B9' + Number(b.total || b.total_amount || b.amount || 0).toLocaleString('en-IN') + '</td>';
+    html += '<td><span class="pay-badge ' + payClass + '">' + (b.payment_mode || 'cash') + '</span> <span class="pay-badge ' + statusClass + '">' + (b.payment_status || 'paid') + '</span></td>';
     html += '<td style="font-size:12px;color:var(--mw-text-3)">' + formatDate(b.created_at) + '</td>';
     html += '<td><button class="btn btn-ghost btn-sm" onclick="viewBillDetail(\'' + String(b.id || b.bill_id) + '\')">View</button></td>';
     html += '</tr>';
@@ -5404,11 +5520,6 @@ function clearBillPatient() {
 
 /* ── Save bill ───────────────────────────────────────────────────────── */
 function saveBill() {
-  if (!billPatientData) {
-    showToast('Please select a patient first', 'error');
-    document.getElementById('billPatientSearch').focus();
-    return;
-  }
   if (billItems.length === 0) {
     showToast('Add at least one item to the bill', 'error');
     return;
@@ -5424,13 +5535,15 @@ function saveBill() {
   var discount = Number(document.getElementById('billDiscount').value) || 0;
   var total    = subtotal + totalGST - discount;
   var paid     = Number(document.getElementById('billAmountPaid').value) || 0;
-  var payStatus = billPayMode === 'pending' ? 'pending' :
+  var payStatus = (billPayMode === 'pending' || billPayMode === 'credit') ? 'pending' :
+                  (billPayMode === 'insurance') ? 'pending' :
                   paid >= total ? 'paid' : paid > 0 ? 'partial' : 'pending';
 
-  var pid = String(billPatientData.patient_id || billPatientData.id);
+  var pid = billPatientData ? String(billPatientData.patient_id || billPatientData.id) : null;
+  var patName = billPatientData ? ((billPatientData.first_name || '') + ' ' + (billPatientData.last_name || '')).trim() : 'Walk-in';
   var body = {
     patient_id:     pid,
-    patient_name:   ((billPatientData.first_name || '') + ' ' + (billPatientData.last_name || '')).trim(),
+    patient_name:   patName,
     items:          billItems.map(function(it) { return { desc: it.desc, qty: it.qty, rate: it.rate, gst_pct: it.gstPct }; }),
     subtotal:       subtotal,
     discount:       discount,
@@ -5455,10 +5568,12 @@ function saveBill() {
       closeBillPOS();
       loadBills();
       /* Update patient last visit */
-      for (var i = 0; i < patientCache.length; i++) {
-        if (String(patientCache[i].patient_id || patientCache[i].id) === pid) {
-          patientCache[i].last_visit_at = Date.now();
-          break;
+      if (pid) {
+        for (var i = 0; i < patientCache.length; i++) {
+          if (String(patientCache[i].patient_id || patientCache[i].id) === pid) {
+            patientCache[i].last_visit_at = Date.now();
+            break;
+          }
         }
       }
     })
@@ -5472,11 +5587,421 @@ function saveBill() {
 
 function printBill() {
   if (!billPatientData) { showToast('Select a patient first', 'error'); return; }
-  showToast('Print feature coming soon — will generate PDF', 'info');
+  /* Build a bill object from the current POS state and print it */
+  var subtotal = 0; var totalGST = 0;
+  for (var i = 0; i < billItems.length; i++) {
+    var it = billItems[i];
+    var lineAmt = it.qty * it.rate;
+    subtotal += lineAmt;
+    totalGST += lineAmt * (it.gstPct / 100);
+  }
+  var discount = Number(document.getElementById('billDiscount').value) || 0;
+  var total = subtotal + totalGST - discount;
+  var paid = Number(document.getElementById('billAmountPaid').value) || 0;
+  var fakeBill = {
+    bill_number: 'DRAFT',
+    created_at: Date.now(),
+    patient_name: ((billPatientData.first_name || '') + ' ' + (billPatientData.last_name || '')).trim(),
+    patient_uhid: billPatientData.uhid || billPatientData.mrn || '',
+    items: billItems.map(function(it) { return { desc: it.desc, qty: it.qty, rate: it.rate, gst_pct: it.gstPct }; }),
+    subtotal: subtotal,
+    discount: discount,
+    gst_amount: totalGST,
+    total: total,
+    paid: paid,
+    balance: Math.max(0, total - paid),
+    payment_mode: billPayMode,
+    payment_status: paid >= total ? 'paid' : paid > 0 ? 'partial' : 'pending'
+  };
+  printBillHTML(fakeBill);
 }
 
+/* ── View Bill Detail ─────────────────────────────────────────── */
 function viewBillDetail(billId) {
-  showToast('Bill detail view — coming soon', 'info');
+  /* Find bill in cache first */
+  var bill = null;
+  for (var i = 0; i < billCache.length; i++) {
+    if (String(billCache[i].id || billCache[i].bill_id) === String(billId)) {
+      bill = billCache[i]; break;
+    }
+  }
+  if (!bill) { showToast('Bill not found', 'error'); return; }
+
+  var items = bill.items || [];
+  if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
+
+  var patName = bill.patient_name || bill.patient_first_name || 'Walk-in';
+  var patUhid = bill.patient_uhid || bill.uhid || '';
+  var payClass = getPayBadgeClass(bill.payment_mode || 'cash');
+  var statusClass = getBillStatusClass(bill.payment_status || 'paid');
+
+  var html = '';
+  /* Header info */
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">';
+  html += '<div><div class="bd-label">Bill Number</div><div class="bd-value" style="font-size:16px;color:var(--mw-primary)">' + (bill.bill_number || '—') + '</div></div>';
+  html += '<div style="text-align:right"><div class="bd-label">Date</div><div class="bd-value">' + formatDate(bill.created_at || bill.bill_date) + '</div></div>';
+  html += '</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;padding:12px;background:var(--mw-bg);border-radius:var(--mw-radius)">';
+  html += '<div><div class="bd-label">Patient</div><div class="bd-value">' + patName + '</div></div>';
+  html += '<div><div class="bd-label">UHID</div><div class="bd-value">' + (patUhid || '—') + '</div></div>';
+  html += '</div>';
+
+  /* Items table */
+  html += '<table class="bd-items-table">';
+  html += '<thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>GST</th><th>Amount</th></tr></thead><tbody>';
+  for (var j = 0; j < items.length; j++) {
+    var it = items[j];
+    var qty = it.qty || it.quantity || 1;
+    var rate = it.rate || it.price || 0;
+    var gst = it.gst_pct || it.gstPct || 0;
+    var lineAmt = qty * rate;
+    var lineGst = lineAmt * (gst / 100);
+    html += '<tr>';
+    html += '<td>' + (it.desc || it.description || it.name || '—') + '</td>';
+    html += '<td style="text-align:center">' + qty + '</td>';
+    html += '<td style="text-align:right">\u20B9' + Number(rate).toLocaleString('en-IN') + '</td>';
+    html += '<td style="text-align:center">' + gst + '%</td>';
+    html += '<td>\u20B9' + (lineAmt + lineGst).toFixed(2) + '</td>';
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+
+  /* Totals */
+  html += '<div style="border-top:2px solid var(--mw-border);padding-top:12px;margin-top:8px">';
+  html += '<div class="bd-row"><span class="bd-label">Subtotal</span><span class="bd-value">\u20B9' + Number(bill.subtotal || 0).toFixed(2) + '</span></div>';
+  html += '<div class="bd-row"><span class="bd-label">Discount</span><span class="bd-value">-\u20B9' + Number(bill.discount || 0).toFixed(2) + '</span></div>';
+  html += '<div class="bd-row"><span class="bd-label">GST</span><span class="bd-value">\u20B9' + Number(bill.gst_amount || 0).toFixed(2) + '</span></div>';
+  html += '<div class="bd-row" style="font-size:18px;padding-top:8px;border-top:1px solid var(--mw-border);margin-top:4px"><span style="font-weight:700">Grand Total</span><span style="font-weight:700;color:var(--mw-primary)">\u20B9' + Number(bill.total || bill.total_amount || bill.amount || 0).toFixed(2) + '</span></div>';
+  html += '</div>';
+
+  /* Payment info */
+  html += '<div style="display:flex;gap:12px;margin-top:16px;padding-top:12px;border-top:1px solid var(--mw-border)">';
+  html += '<div><span class="bd-label">Payment: </span><span class="pay-badge ' + payClass + '">' + (bill.payment_mode || 'cash') + '</span></div>';
+  html += '<div><span class="bd-label">Status: </span><span class="pay-badge ' + statusClass + '">' + (bill.payment_status || 'paid') + '</span></div>';
+  if (Number(bill.paid || 0) > 0) html += '<div><span class="bd-label">Paid: </span><span class="bd-value">\u20B9' + Number(bill.paid).toFixed(2) + '</span></div>';
+  if (Number(bill.balance || 0) > 0) html += '<div><span class="bd-label">Balance: </span><span class="bd-value" style="color:var(--mw-danger)">\u20B9' + Number(bill.balance).toFixed(2) + '</span></div>';
+  html += '</div>';
+
+  if (bill.notes) {
+    html += '<div style="margin-top:12px;padding:10px;background:var(--mw-bg);border-radius:var(--mw-radius);font-size:13px;color:var(--mw-text-2)"><strong>Notes:</strong> ' + bill.notes + '</div>';
+  }
+
+  document.getElementById('billDetailTitle').textContent = 'Bill ' + (bill.bill_number || '#' + billId);
+  document.getElementById('billDetailContent').innerHTML = html;
+  document.getElementById('billDetailModal').classList.add('active');
+  /* Store for printing */
+  window._activeBillDetail = bill;
+}
+
+function closeBillDetail() {
+  document.getElementById('billDetailModal').classList.remove('active');
+}
+
+function printBillReceipt() {
+  if (window._activeBillDetail) printBillHTML(window._activeBillDetail);
+}
+
+/* ── Print Bill HTML ────────────────────────────────────────────── */
+function printBillHTML(bill) {
+  var items = bill.items || [];
+  if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
+  var hospName = appState.hospitalName || appState.hospital_name || 'Hospital';
+  var hospAddr = appState.hospitalAddress || '';
+  var hospPhone = appState.hospitalPhone || '';
+  var hospGstin = appState.hospitalGstin || '';
+
+  var h = '<!DOCTYPE html><html><head><title>Bill ' + (bill.bill_number || '') + '</title>';
+  h += '<style>';
+  h += 'body{font-family:Arial,sans-serif;max-width:380px;margin:0 auto;padding:16px;font-size:12px;color:#333}';
+  h += '.hdr{text-align:center;border-bottom:1px dashed #999;padding-bottom:10px;margin-bottom:10px}';
+  h += '.hdr h2{font-size:16px;margin:0 0 2px}';
+  h += '.hdr p{margin:2px 0;font-size:11px;color:#666}';
+  h += '.info{display:flex;justify-content:space-between;margin-bottom:10px;font-size:11px}';
+  h += 'table{width:100%;border-collapse:collapse;margin:8px 0}';
+  h += 'th{text-align:left;font-size:10px;color:#666;border-bottom:1px solid #ccc;padding:4px 2px}';
+  h += 'th:last-child,td:last-child{text-align:right}';
+  h += 'td{padding:4px 2px;border-bottom:1px solid #eee;font-size:12px}';
+  h += '.totals{border-top:1px dashed #999;padding-top:8px;margin-top:4px}';
+  h += '.totals .row{display:flex;justify-content:space-between;padding:2px 0}';
+  h += '.totals .grand{font-size:16px;font-weight:700;border-top:1px dashed #999;padding-top:6px;margin-top:4px}';
+  h += '.footer{text-align:center;border-top:1px dashed #999;padding-top:10px;margin-top:16px;font-size:11px;color:#666}';
+  h += '@media print{body{margin:0;padding:8px}}';
+  h += '</style></head><body>';
+
+  h += '<div class="hdr">';
+  h += '<h2>' + hospName + '</h2>';
+  if (hospAddr) h += '<p>' + hospAddr + '</p>';
+  if (hospPhone) h += '<p>Phone: ' + hospPhone + '</p>';
+  if (hospGstin) h += '<p>GSTIN: ' + hospGstin + '</p>';
+  h += '</div>';
+
+  h += '<div class="info"><div><strong>Invoice:</strong> ' + (bill.bill_number || 'DRAFT') + '</div><div><strong>Date:</strong> ' + formatDate(bill.created_at || bill.bill_date || Date.now()) + '</div></div>';
+  h += '<div class="info"><div><strong>Patient:</strong> ' + (bill.patient_name || 'Walk-in') + '</div>';
+  if (bill.patient_uhid) h += '<div><strong>UHID:</strong> ' + bill.patient_uhid + '</div>';
+  h += '</div>';
+
+  h += '<table><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Amt</th></tr></thead><tbody>';
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var qty = it.qty || it.quantity || 1;
+    var rate = it.rate || it.price || 0;
+    var gst = it.gst_pct || it.gstPct || 0;
+    var amt = qty * rate;
+    var gstAmt = amt * (gst / 100);
+    h += '<tr><td>' + (it.desc || it.description || it.name || '-') + (gst > 0 ? ' <small>(' + gst + '% GST)</small>' : '') + '</td>';
+    h += '<td style="text-align:center">' + qty + '</td>';
+    h += '<td style="text-align:right">\u20B9' + rate + '</td>';
+    h += '<td>\u20B9' + (amt + gstAmt).toFixed(2) + '</td></tr>';
+  }
+  h += '</tbody></table>';
+
+  h += '<div class="totals">';
+  h += '<div class="row"><span>Subtotal</span><span>\u20B9' + Number(bill.subtotal || 0).toFixed(2) + '</span></div>';
+  if (Number(bill.discount || 0) > 0) h += '<div class="row"><span>Discount</span><span>-\u20B9' + Number(bill.discount).toFixed(2) + '</span></div>';
+  if (Number(bill.gst_amount || 0) > 0) h += '<div class="row"><span>GST</span><span>\u20B9' + Number(bill.gst_amount).toFixed(2) + '</span></div>';
+  h += '<div class="row grand"><span>Total</span><span>\u20B9' + Number(bill.total || bill.total_amount || 0).toFixed(2) + '</span></div>';
+  h += '<div class="row"><span>Payment</span><span>' + (bill.payment_mode || 'Cash') + '</span></div>';
+  if (Number(bill.paid || 0) > 0) h += '<div class="row"><span>Paid</span><span>\u20B9' + Number(bill.paid).toFixed(2) + '</span></div>';
+  if (Number(bill.balance || 0) > 0) h += '<div class="row"><span>Balance Due</span><span style="color:#991B1B">\u20B9' + Number(bill.balance).toFixed(2) + '</span></div>';
+  h += '</div>';
+
+  h += '<div class="footer"><p>Thank you, visit again!</p><p style="margin-top:4px;font-size:10px">Powered by Hemato HMS</p></div>';
+  h += '</body></html>';
+
+  var w = window.open('', '_blank', 'width=420,height=700');
+  w.document.write(h);
+  w.document.close();
+  setTimeout(function() { w.print(); }, 400);
+}
+
+/* ── Payment badge helpers ────────────────────────────────────── */
+function getPayBadgeClass(mode) {
+  var m = (mode || '').toLowerCase();
+  if (m === 'cash') return 'pay-cash';
+  if (m === 'upi') return 'pay-upi';
+  if (m === 'card') return 'pay-card';
+  if (m === 'insurance') return 'pay-insurance';
+  if (m === 'online') return 'pay-online';
+  if (m === 'pending' || m === 'credit') return 'pay-pending';
+  return 'pay-cash';
+}
+
+function getBillStatusClass(status) {
+  var s = (status || '').toLowerCase();
+  if (s === 'paid') return 'bill-status-paid';
+  if (s === 'pending') return 'bill-status-pending';
+  if (s === 'partial') return 'bill-status-partial';
+  if (s === 'cancelled') return 'bill-status-cancelled';
+  return 'bill-status-paid';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   COLLECTION REPORTS
+   ══════════════════════════════════════════════════════════════ */
+var colDailyBills = [];
+var colMonthlyData = [];
+
+function initCollections() {
+  var today = new Date().toISOString().split('T')[0];
+  document.getElementById('colDailyDate').value = today;
+  var ym = today.substring(0, 7);
+  document.getElementById('colMonthPicker').value = ym;
+  loadDailyCollection();
+}
+
+function showColTab(tab) {
+  var dBtn = document.getElementById('colTabDaily');
+  var mBtn = document.getElementById('colTabMonthly');
+  var dView = document.getElementById('colDailyView');
+  var mView = document.getElementById('colMonthlyView');
+  if (tab === 'daily') {
+    dBtn.style.background = 'var(--mw-primary)'; dBtn.style.color = '#fff'; dBtn.className = 'btn btn-sm';
+    mBtn.style.background = ''; mBtn.style.color = ''; mBtn.className = 'btn btn-outline btn-sm';
+    dView.style.display = ''; mView.style.display = 'none';
+  } else {
+    mBtn.style.background = 'var(--mw-primary)'; mBtn.style.color = '#fff'; mBtn.className = 'btn btn-sm';
+    dBtn.style.background = ''; dBtn.style.color = ''; dBtn.className = 'btn btn-outline btn-sm';
+    dView.style.display = 'none'; mView.style.display = '';
+    loadMonthlyCollection();
+  }
+}
+
+function loadDailyCollection() {
+  var date = document.getElementById('colDailyDate').value;
+  if (!date) return;
+  /* Use local billCache to compute daily — no extra API needed */
+  var dayStart = new Date(date).getTime();
+  var dayEnd = dayStart + 86400000;
+  var filtered = (billCache || []).filter(function(b) {
+    var ts = Number(b.created_at || 0);
+    return ts >= dayStart && ts < dayEnd;
+  });
+  colDailyBills = filtered;
+  renderDailyCollection(filtered);
+}
+
+function renderDailyCollection(bills) {
+  var totalAmt = 0, cashAmt = 0, upiAmt = 0, cardAmt = 0, insAmt = 0;
+  var patients = {};
+  for (var i = 0; i < bills.length; i++) {
+    var b = bills[i];
+    var amt = Number(b.total || b.total_amount || b.amount || 0);
+    var mode = (b.payment_mode || '').toLowerCase();
+    totalAmt += amt;
+    if (mode === 'cash') cashAmt += amt;
+    else if (mode === 'upi') upiAmt += amt;
+    else if (mode === 'card') cardAmt += amt;
+    else if (mode === 'insurance') insAmt += amt;
+    else cashAmt += amt;
+    if (b.patient_id) patients[String(b.patient_id)] = true;
+  }
+
+  document.getElementById('colTotalAmt').textContent = '\u20B9' + totalAmt.toLocaleString('en-IN');
+  document.getElementById('colCashAmt').textContent = '\u20B9' + cashAmt.toLocaleString('en-IN');
+  document.getElementById('colUpiAmt').textContent = '\u20B9' + upiAmt.toLocaleString('en-IN');
+  document.getElementById('colCardAmt').textContent = '\u20B9' + cardAmt.toLocaleString('en-IN');
+  document.getElementById('colInsAmt').textContent = '\u20B9' + insAmt.toLocaleString('en-IN');
+  document.getElementById('colBillCount').textContent = String(bills.length);
+  document.getElementById('colPatientCount').textContent = String(Object.keys(patients).length);
+
+  var tbody = document.getElementById('colDailyTableBody');
+  if (!bills.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state" style="padding:30px"><div class="empty-state-text">No bills for this date</div></td></tr>';
+    return;
+  }
+  var html = '';
+  for (var j = 0; j < bills.length; j++) {
+    var bill = bills[j];
+    var payClass = getPayBadgeClass(bill.payment_mode);
+    var statusClass = getBillStatusClass(bill.payment_status);
+    var timeStr = '—';
+    if (bill.created_at) {
+      var d = new Date(Number(bill.created_at));
+      timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    }
+    html += '<tr>';
+    html += '<td style="font-family:var(--mw-font-mono);font-size:12px;color:var(--mw-primary);cursor:pointer" onclick="viewBillDetail(\'' + String(bill.id || bill.bill_id) + '\')">' + (bill.bill_number || '—') + '</td>';
+    html += '<td>' + (bill.patient_name || bill.patient_first_name || 'Walk-in') + '</td>';
+    html += '<td style="font-weight:600">\u20B9' + Number(bill.total || bill.total_amount || 0).toLocaleString('en-IN') + '</td>';
+    html += '<td><span class="pay-badge ' + payClass + '">' + (bill.payment_mode || 'cash') + '</span></td>';
+    html += '<td><span class="pay-badge ' + statusClass + '">' + (bill.payment_status || 'paid') + '</span></td>';
+    html += '<td style="font-size:12px;color:var(--mw-text-3)">' + timeStr + '</td>';
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function loadMonthlyCollection() {
+  var ym = document.getElementById('colMonthPicker').value;
+  if (!ym) return;
+  var parts = ym.split('-');
+  var year = parseInt(parts[0]);
+  var month = parseInt(parts[1]) - 1;
+  var monthStart = new Date(year, month, 1).getTime();
+  var monthEnd = new Date(year, month + 1, 1).getTime();
+
+  var filtered = (billCache || []).filter(function(b) {
+    var ts = Number(b.created_at || 0);
+    return ts >= monthStart && ts < monthEnd;
+  });
+
+  /* Aggregate by day */
+  var dayMap = {};
+  var totalAmt = 0, cashAmt = 0, upiAmt = 0, cardAmt = 0;
+  var patients = {};
+  for (var i = 0; i < filtered.length; i++) {
+    var b = filtered[i];
+    var amt = Number(b.total || b.total_amount || 0);
+    var mode = (b.payment_mode || '').toLowerCase();
+    totalAmt += amt;
+    if (mode === 'cash') cashAmt += amt;
+    else if (mode === 'upi') upiAmt += amt;
+    else if (mode === 'card') cardAmt += amt;
+    if (b.patient_id) patients[String(b.patient_id)] = true;
+
+    var dayKey = new Date(Number(b.created_at)).toISOString().split('T')[0];
+    if (!dayMap[dayKey]) dayMap[dayKey] = { bills: 0, cash: 0, upi: 0, card: 0, insurance: 0, total: 0 };
+    dayMap[dayKey].bills++;
+    dayMap[dayKey].total += amt;
+    if (mode === 'cash') dayMap[dayKey].cash += amt;
+    else if (mode === 'upi') dayMap[dayKey].upi += amt;
+    else if (mode === 'card') dayMap[dayKey].card += amt;
+    else if (mode === 'insurance') dayMap[dayKey].insurance += amt;
+  }
+  colMonthlyData = filtered;
+
+  document.getElementById('colMonthTotal').textContent = '\u20B9' + totalAmt.toLocaleString('en-IN');
+  document.getElementById('colMonthCash').textContent = '\u20B9' + cashAmt.toLocaleString('en-IN');
+  document.getElementById('colMonthUpi').textContent = '\u20B9' + upiAmt.toLocaleString('en-IN');
+  document.getElementById('colMonthCard').textContent = '\u20B9' + cardAmt.toLocaleString('en-IN');
+  document.getElementById('colMonthBills').textContent = String(filtered.length);
+  document.getElementById('colMonthPatients').textContent = String(Object.keys(patients).length);
+
+  var tbody = document.getElementById('colMonthlyTableBody');
+  var days = Object.keys(dayMap).sort();
+  if (!days.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state" style="padding:30px"><div class="empty-state-text">No bills for this month</div></td></tr>';
+    return;
+  }
+  var html = '';
+  for (var d = 0; d < days.length; d++) {
+    var day = days[d];
+    var dd = dayMap[day];
+    html += '<tr>';
+    html += '<td style="font-weight:600;cursor:pointer;color:var(--mw-primary)" onclick="document.getElementById(\'colDailyDate\').value=\'' + day + '\';showColTab(\'daily\');loadDailyCollection()">' + day + '</td>';
+    html += '<td>' + dd.bills + '</td>';
+    html += '<td>\u20B9' + dd.cash.toLocaleString('en-IN') + '</td>';
+    html += '<td>\u20B9' + dd.upi.toLocaleString('en-IN') + '</td>';
+    html += '<td>\u20B9' + dd.card.toLocaleString('en-IN') + '</td>';
+    html += '<td>\u20B9' + dd.insurance.toLocaleString('en-IN') + '</td>';
+    html += '<td style="font-weight:700">\u20B9' + dd.total.toLocaleString('en-IN') + '</td>';
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function printDailyReport() {
+  var date = document.getElementById('colDailyDate').value;
+  var hospName = appState.hospitalName || appState.hospital_name || 'Hospital';
+  var bills = colDailyBills;
+  var totalAmt = 0;
+  for (var i = 0; i < bills.length; i++) totalAmt += Number(bills[i].total || bills[i].total_amount || 0);
+
+  var h = '<!DOCTYPE html><html><head><title>Daily Collection ' + date + '</title>';
+  h += '<style>body{font-family:Arial,sans-serif;max-width:700px;margin:0 auto;padding:20px;font-size:13px}';
+  h += 'h2{margin:0 0 4px}h3{margin:0;color:#666;font-size:14px;font-weight:400}';
+  h += 'table{width:100%;border-collapse:collapse;margin:16px 0}th,td{padding:6px 8px;border:1px solid #ddd;text-align:left;font-size:12px}th{background:#f5f5f5;font-size:11px;text-transform:uppercase}';
+  h += '.summary{display:flex;gap:16px;margin:12px 0}.summary div{padding:10px;border:1px solid #ddd;border-radius:6px;text-align:center;flex:1}.summary .val{font-size:20px;font-weight:700}.summary .lbl{font-size:10px;color:#666}';
+  h += '@media print{body{padding:0}}</style></head><body>';
+  h += '<h2>' + hospName + '</h2><h3>Daily Collection Report — ' + date + '</h3>';
+  h += '<div class="summary"><div><div class="val">\u20B9' + totalAmt.toLocaleString('en-IN') + '</div><div class="lbl">Total</div></div><div><div class="val">' + bills.length + '</div><div class="lbl">Bills</div></div></div>';
+  h += '<table><thead><tr><th>Bill #</th><th>Patient</th><th>Amount</th><th>Payment</th><th>Status</th><th>Time</th></tr></thead><tbody>';
+  for (var j = 0; j < bills.length; j++) {
+    var b = bills[j]; var t = b.created_at ? new Date(Number(b.created_at)).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+    h += '<tr><td>' + (b.bill_number||'') + '</td><td>' + (b.patient_name||b.patient_first_name||'Walk-in') + '</td><td>\u20B9' + Number(b.total||0).toLocaleString('en-IN') + '</td><td>' + (b.payment_mode||'') + '</td><td>' + (b.payment_status||'') + '</td><td>' + t + '</td></tr>';
+  }
+  h += '</tbody></table><p style="text-align:center;font-size:11px;color:#999;margin-top:20px">Generated by Hemato HMS</p></body></html>';
+  var w = window.open('','_blank','width=750,height=600'); w.document.write(h); w.document.close();
+  setTimeout(function(){ w.print(); }, 400);
+}
+
+function exportMonthlyCSV() {
+  var bills = colMonthlyData;
+  if (!bills.length) { showToast('No data to export', 'error'); return; }
+  var csv = 'Bill Number,Patient,Amount,GST,Total,Payment Mode,Status,Date\n';
+  for (var i = 0; i < bills.length; i++) {
+    var b = bills[i];
+    var dateStr = b.created_at ? new Date(Number(b.created_at)).toISOString().split('T')[0] : '';
+    csv += '"' + (b.bill_number||'') + '","' + (b.patient_name||b.patient_first_name||'Walk-in') + '",' + Number(b.subtotal||0) + ',' + Number(b.gst_amount||0) + ',' + Number(b.total||0) + ',"' + (b.payment_mode||'') + '","' + (b.payment_status||'') + '",' + dateStr + '\n';
+  }
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'collection_' + document.getElementById('colMonthPicker').value + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exported!', 'success');
 }
 
 /* ===========================================================
