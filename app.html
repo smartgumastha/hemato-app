@@ -5697,10 +5697,31 @@ function saveBill() {
   var saveBtn = document.querySelector('#billPOSView .btn-primary');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
 
+  /* Capture print data before POS view gets cleared */
+  var printData = {
+    bill_number: 'SAVING...',
+    created_at: Date.now(),
+    patient_name: patName,
+    patient_uhid: billPatientData ? (billPatientData.uhid || billPatientData.mrn || '') : '',
+    items: body.items,
+    subtotal: subtotal,
+    discount: discount,
+    gst_amount: totalGST,
+    total: total,
+    paid: paid,
+    balance: Math.max(0, total - paid),
+    payment_mode: billPayMode,
+    payment_status: payStatus,
+    transaction_ref: txnRef,
+    notes: notesVal
+  };
+
   api.post(api.h('/bills'), body)
     .then(function(data) {
       var bill = data.bill || data;
       showToast('Bill saved! ' + (bill.bill_number || ''), 'success');
+      printData.bill_number = bill.bill_number || bill.id || '';
+      printBillHTML(printData);
       closeBillPOS();
       loadBills();
       /* Update patient last visit */
