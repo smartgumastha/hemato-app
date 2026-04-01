@@ -769,6 +769,8 @@ tr.bill-row-pending{background:#FEF3C7}
 tr.bill-row-partial{background:#FFF7ED}
 tr.bill-row-cancelled{background:#F3F4F6;opacity:0.7}
 tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
+#billsTable tbody tr:hover{background:#f0fdf4!important}
+#billsTable tbody td a:hover{text-decoration:underline}
 /* Payment mode badges */
 .pay-badge{display:inline-block;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:600;text-transform:capitalize}
 .pay-cash{background:#D1FAE5;color:#065F46}
@@ -1425,9 +1427,9 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
               <button class="btn btn-outline btn-sm" style="font-size:11px;background:var(--mw-primary);color:#fff;border-color:var(--mw-primary)" onclick="setBillDateRange('month')">This Month</button>
               <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="setBillDateRange('all')">All</button>
             </div>
-            <table class="mw-table">
+            <table class="mw-table" id="billsTable" style="border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
               <thead>
-                <tr><th>Bill #</th><th>Patient</th><th>Items</th><th>Subtotal</th><th>Disc</th><th>GST</th><th>Total</th><th>Payment</th><th>Date</th><th>Actions</th></tr>
+                <tr style="background:#f8fafc"><th style="min-width:140px;white-space:nowrap;padding:10px 12px;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e5e7eb">Bill #</th><th style="padding:10px 12px;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e5e7eb">Patient</th><th style="padding:10px 12px;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e5e7eb">Items</th><th style="padding:10px 12px;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e5e7eb">Subtotal</th><th style="padding:10px 12px;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e5e7eb">Disc</th><th style="padding:10px 12px;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e5e7eb">GST</th><th style="padding:10px 12px;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e5e7eb">Total</th><th style="padding:10px 12px;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e5e7eb">Payment</th><th style="padding:10px 12px;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e5e7eb">Date</th><th style="padding:10px 12px;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e5e7eb">Actions</th></tr>
               </thead>
               <tbody id="billTableBody">
                 <tr><td colspan="10" class="empty-state" style="padding:40px"><div class="empty-state-title">No bills yet</div><div class="empty-state-text">Click + New Bill to create the first invoice</div></td></tr>
@@ -5364,32 +5366,36 @@ function renderBillTable(bills) {
     tbody.innerHTML = '<tr><td colspan="10" class="empty-state" style="padding:40px"><div class="empty-state-title">No bills yet</div><div class="empty-state-text">Click + New Bill to create first invoice</div></td></tr>';
     return;
   }
+  var payColors = { cash:'background:#dcfce7;color:#166534', upi:'background:#dbeafe;color:#1e40af', card:'background:#ede9fe;color:#5b21b6', insurance:'background:#fed7aa;color:#9a3412', online:'background:#e0e7ff;color:#3730a3', pending:'background:#fee2e2;color:#991b1b', credit:'background:#fee2e2;color:#991b1b' };
+  var statColors = { paid:'background:#dcfce7;color:#166534', pending:'background:#fef3c7;color:#92400e', partial:'background:#ffe4e6;color:#be123c', cancelled:'background:#f3f4f6;color:#9ca3af' };
   var html = '';
   for (var i = 0; i < bills.length; i++) {
     var b = bills[i];
-    var payClass = getPayBadgeClass(b.payment_mode);
     var status = (b.payment_status || 'paid').toLowerCase();
-    var statusClass = getBillStatusClass(status);
     var rowClass = 'bill-row-' + status;
     var bItems = b.items || [];
     if (typeof bItems === 'string') { try { bItems = JSON.parse(bItems); } catch(e) { bItems = []; } }
     var itemCount = Array.isArray(bItems) ? bItems.length : 1;
     var patName = b.patient_name || b.patient_first_name || '';
     if (!patName || patName === '—') patName = '';
-    var patDisplay = patName ? '<strong>' + patName + '</strong>' : '<em style="color:var(--mw-text-3)">Walk-in</em>';
+    var patDisplay = patName ? '<strong style="color:#111827">' + patName + '</strong>' : '<em style="color:#9ca3af">Walk-in</em>';
     var bid = String(b.id || b.bill_id);
-    html += '<tr class="' + rowClass + '">';
-    html += '<td style="font-family:var(--mw-font-mono);font-size:12px;color:var(--mw-primary)">' + (b.bill_number || b.id || '—') + '</td>';
-    html += '<td>' + patDisplay + '</td>';
-    html += '<td style="font-size:12px;color:var(--mw-text-3)">' + itemCount + ' item(s)</td>';
-    html += '<td>\u20B9' + Number(b.subtotal || 0).toLocaleString('en-IN') + '</td>';
+    var payMode = (b.payment_mode || 'cash').toLowerCase();
+    var payStyle = payColors[payMode] || payColors.cash;
+    var statStyle = statColors[status] || statColors.paid;
     var disc = Number(b.discount || 0);
-    html += '<td style="font-size:12px;color:' + (disc > 0 ? 'var(--mw-danger)' : 'var(--mw-text-3)') + '">' + (disc > 0 ? '-\u20B9' + disc.toLocaleString('en-IN') : '—') + '</td>';
-    html += '<td style="font-size:12px">\u20B9' + Number(b.gst_amount || 0).toLocaleString('en-IN') + '</td>';
-    html += '<td style="font-weight:600">\u20B9' + Number(b.total || b.total_amount || b.amount || 0).toLocaleString('en-IN') + '</td>';
-    html += '<td><span class="pay-badge ' + payClass + '">' + (b.payment_mode || 'cash') + '</span> <span class="pay-badge ' + statusClass + '" style="font-size:12px;font-weight:700;padding:4px 10px">' + status + '</span></td>';
-    html += '<td style="font-size:12px;color:var(--mw-text-3)">' + formatDate(b.created_at) + '</td>';
-    html += '<td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="viewBillDetail(\'' + bid + '\')">View</button> <button class="btn btn-ghost btn-sm" onclick="printBillById(\'' + bid + '\')" title="Print">\u2399</button></td>';
+
+    html += '<tr class="' + rowClass + '" style="border-bottom:1px solid #f3f4f6">';
+    html += '<td style="padding:12px;min-width:140px;white-space:nowrap"><a href="javascript:void(0)" onclick="viewBillDetail(\'' + bid + '\')" style="font-family:var(--mw-font-mono);font-size:13px;color:#16a34a;font-weight:500;text-decoration:none">' + (b.bill_number || b.id || '—') + '</a></td>';
+    html += '<td style="padding:12px">' + patDisplay + '</td>';
+    html += '<td style="padding:12px;font-size:12px;color:#6b7280">' + itemCount + ' item(s)</td>';
+    html += '<td style="padding:12px">\u20B9' + Number(b.subtotal || 0).toLocaleString('en-IN') + '</td>';
+    html += '<td style="padding:12px;font-size:12px;color:' + (disc > 0 ? '#dc2626' : '#d1d5db') + '">' + (disc > 0 ? '-\u20B9' + disc.toLocaleString('en-IN') : '—') + '</td>';
+    html += '<td style="padding:12px;font-size:12px">\u20B9' + Number(b.gst_amount || 0).toLocaleString('en-IN') + '</td>';
+    html += '<td style="padding:12px;font-weight:700;color:#111827">\u20B9' + Number(b.total || b.total_amount || b.amount || 0).toLocaleString('en-IN') + '</td>';
+    html += '<td style="padding:12px;white-space:nowrap"><span style="display:inline-block;font-size:11px;border-radius:10px;padding:2px 8px;margin-right:4px;font-weight:500;' + payStyle + '">' + payMode + '</span><span style="display:inline-block;font-size:11px;border-radius:10px;padding:2px 8px;font-weight:500;' + statStyle + '">' + status + '</span></td>';
+    html += '<td style="padding:12px;font-size:13px;color:#6b7280">' + formatDate(b.created_at) + '</td>';
+    html += '<td style="padding:12px;white-space:nowrap"><a href="javascript:void(0)" onclick="viewBillDetail(\'' + bid + '\')" style="color:#16a34a;font-weight:500;font-size:13px;margin-right:10px">View</a><a href="javascript:void(0)" onclick="printBillById(\'' + bid + '\')" style="color:#9ca3af;font-size:14px" title="Print">&#9113;</a></td>';
     html += '</tr>';
   }
   tbody.innerHTML = html;
