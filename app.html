@@ -1669,9 +1669,45 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
         <div class="settings-grid">
           <div class="settings-card">
             <div class="settings-card-title">Hospital Details</div>
+
+            <!-- Logo Upload -->
+            <div class="form-group">
+              <label>Hospital Logo</label>
+              <div id="logoPreview" style="margin-bottom:8px">
+                <img id="hospitalLogoImg" src="" alt="Logo" style="max-height:60px;max-width:200px;display:none;border-radius:6px;border:1px solid var(--mw-border)">
+                <div id="logoPlaceholder" style="width:200px;height:60px;border:2px dashed var(--mw-border);border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--mw-text-3);font-size:12px;cursor:pointer" onclick="document.getElementById('logoUpload').click()">
+                  &#128247; Upload your hospital logo
+                </div>
+              </div>
+              <input type="file" id="logoUpload" accept="image/png,image/jpeg" style="display:none" onchange="handleLogoUpload(this)">
+              <div style="display:flex;gap:8px;align-items:center">
+                <button class="btn btn-outline btn-sm" type="button" onclick="document.getElementById('logoUpload').click()">Upload Logo</button>
+                <a href="javascript:void(0)" id="removeLogoLink" onclick="removeLogo()" style="font-size:12px;color:var(--mw-danger);display:none">Remove Logo</a>
+              </div>
+            </div>
+
             <div class="form-group">
               <label>Hospital Name</label>
               <input type="text" id="settingsHospitalName">
+            </div>
+            <div class="form-group">
+              <label>Tagline</label>
+              <input type="text" id="settingsTagline" placeholder="Your Health, Our Priority">
+            </div>
+            <div class="form-group">
+              <label>Hospital Type</label>
+              <select id="settingsHospitalType">
+                <option value="">Select Type</option>
+                <option value="clinic">Clinic</option>
+                <option value="hospital">Hospital</option>
+                <option value="diagnostic_center">Diagnostic Center</option>
+                <option value="pharmacy">Pharmacy</option>
+                <option value="multi_specialty">Multi-Specialty</option>
+                <option value="physiotherapy">Physiotherapy Center</option>
+                <option value="dental">Dental Clinic</option>
+                <option value="eye_clinic">Eye Clinic</option>
+                <option value="nursing_home">Nursing Home</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Address</label>
@@ -6851,9 +6887,39 @@ function copyPost(id) {
   });
 }
 
+var hospitalLogoBase64 = '';
+
+function handleLogoUpload(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 512000) { showToast('Logo must be under 500KB', 'error'); input.value = ''; return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    hospitalLogoBase64 = e.target.result;
+    var img = document.getElementById('hospitalLogoImg');
+    img.src = hospitalLogoBase64;
+    img.style.display = 'block';
+    document.getElementById('logoPlaceholder').style.display = 'none';
+    document.getElementById('removeLogoLink').style.display = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLogo() {
+  hospitalLogoBase64 = '';
+  var img = document.getElementById('hospitalLogoImg');
+  img.src = '';
+  img.style.display = 'none';
+  document.getElementById('logoPlaceholder').style.display = 'flex';
+  document.getElementById('removeLogoLink').style.display = 'none';
+  document.getElementById('logoUpload').value = '';
+}
+
 function loadSettings() {
   var h = appState.hospital || {};
   document.getElementById('settingsHospitalName').value = h.name || '';
+  document.getElementById('settingsTagline').value = h.tagline || '';
+  document.getElementById('settingsHospitalType').value = h.hospital_type || '';
   document.getElementById('settingsAddress').value = h.address || '';
   document.getElementById('settingsCity').value = h.city || '';
   document.getElementById('settingsState').value = h.state || '';
@@ -6866,11 +6932,24 @@ function loadSettings() {
   document.getElementById('settingsDrugLicence').value = h.drug_licence || '';
   document.getElementById('settingsBillFooter').value = h.bill_footer || '';
   document.getElementById('settingsBillTerms').value = h.bill_terms || '';
+  /* Logo */
+  if (h.logo_url || h.logo) {
+    hospitalLogoBase64 = h.logo_url || h.logo;
+    var img = document.getElementById('hospitalLogoImg');
+    img.src = hospitalLogoBase64;
+    img.style.display = 'block';
+    document.getElementById('logoPlaceholder').style.display = 'none';
+    document.getElementById('removeLogoLink').style.display = '';
+  } else {
+    removeLogo();
+  }
 }
 
 function saveSettings() {
   var body = {
     name: document.getElementById('settingsHospitalName').value.trim(),
+    tagline: document.getElementById('settingsTagline').value.trim(),
+    hospital_type: document.getElementById('settingsHospitalType').value,
     address: document.getElementById('settingsAddress').value.trim(),
     city: document.getElementById('settingsCity').value.trim(),
     state: document.getElementById('settingsState').value.trim(),
@@ -6884,6 +6963,7 @@ function saveSettings() {
     bill_footer: document.getElementById('settingsBillFooter').value.trim(),
     bill_terms: document.getElementById('settingsBillTerms').value.trim(),
   };
+  if (hospitalLogoBase64) body.logo_url = hospitalLogoBase64;
 
   api.put(api.h('/settings'), body)
     .then(function() {
