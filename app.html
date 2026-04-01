@@ -5807,8 +5807,19 @@ function saveBill() {
       }
       if (!printData.patient_name && billPatientData) {
         printData.patient_name = ((billPatientData.first_name || '') + ' ' + (billPatientData.last_name || '')).trim();
-        printData.patient_uhid = billPatientData.uhid || '';
+        printData.patient_uhid = billPatientData.uhid || billPatientData.mrn || '';
       }
+      if (billPatientData) {
+        printData.uhid = printData.uhid || printData.patient_uhid || billPatientData.uhid || billPatientData.mrn || '';
+        printData.gender = billPatientData.gender || '';
+        var patAge = billPatientData.age;
+        if (!patAge && billPatientData.dob) {
+          var dob = new Date(billPatientData.dob);
+          if (!isNaN(dob.getTime())) patAge = Math.floor((Date.now() - dob.getTime()) / 31557600000);
+        }
+        if (patAge) printData.age = patAge;
+      }
+      if (!printData.created_at) printData.created_at = Date.now();
       if (!printData.total && !printData.total_amount) {
         var tEl = document.getElementById('billTotal');
         printData.total = parseFloat((tEl.textContent || '0').replace(/[^\d.]/g, '')) || 0;
@@ -5975,6 +5986,47 @@ function printBillReceipt() {
 }
 
 /* ── Print Bill HTML ────────────────────────────────────────────── */
+function numberToWords(num) {
+  var ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  var tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  if (num === 0) return 'Zero';
+  var result = '';
+  if (Math.floor(num / 10000000) > 0) { result += numberToWords(Math.floor(num / 10000000)) + ' Crore '; num = num % 10000000; }
+  if (Math.floor(num / 100000) > 0) { result += numberToWords(Math.floor(num / 100000)) + ' Lakh '; num = num % 100000; }
+  if (Math.floor(num / 1000) > 0) { result += numberToWords(Math.floor(num / 1000)) + ' Thousand '; num = num % 1000; }
+  if (Math.floor(num / 100) > 0) { result += ones[Math.floor(num / 100)] + ' Hundred '; num = num % 100; }
+  if (num > 0) {
+    if (result !== '') result += 'and ';
+    if (num < 20) { result += ones[num]; }
+    else { result += tens[Math.floor(num / 10)]; if (num % 10 > 0) result += ' ' + ones[num % 10]; }
+  }
+  return result.trim();
+}
+
+function amountToWords(amount) {
+  var rupees = Math.floor(amount);
+  var paise = Math.round((amount - rupees) * 100);
+  var words = 'Rupees ' + numberToWords(rupees);
+  if (paise > 0) words += ' and ' + numberToWords(paise) + ' Paise';
+  return words + ' Only';
+}
+
+function formatBillDateTime(ts) {
+  var n = Number(ts || Date.now());
+  if (n > 0 && n < 9999999999) n = n * 1000;
+  var d = new Date(n);
+  if (isNaN(d.getTime())) d = new Date();
+  var day = ('0' + d.getDate()).slice(-2);
+  var month = ('0' + (d.getMonth() + 1)).slice(-2);
+  var year = d.getFullYear();
+  var hours = d.getHours();
+  var ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  var mins = ('0' + d.getMinutes()).slice(-2);
+  return day + '/' + month + '/' + year + ', ' + hours + ':' + mins + ' ' + ampm;
+}
+
 function printBillHTML(printData) {
   var h = appState.hospital || {};
   var printFormat = h.print_format || 'a5';
@@ -5999,15 +6051,20 @@ function printBillHTML(printData) {
   var contactParts = [];
   if (h.phone) contactParts.push('Ph: ' + h.phone);
   if (h.email) contactParts.push(h.email);
-  var contactLine = contactParts.length ? '<div style="font-size:10px;color:#444;text-align:center;margin-bottom:8px;">' + contactParts.join(' | ') + '</div>' : '';
+  var contactLine = contactParts.length ? '<div style="font-size:10px;color:#444;text-align:center;margin-bottom:4px;">' + contactParts.join(' | ') + '</div>' : '';
 
-  /* Normalize field names — callers may use bill_number or billNumber etc */
+  var placeOfSupply = h.state ? '<div style="font-size:9px;color:#666;text-align:center;margin-bottom:8px;">Place of Supply: ' + h.state + '</div>' : '';
+
+  /* Normalize field names */
   var items = printData.items || [];
   if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
   var billNumber = printData.billNumber || printData.bill_number || 'DRAFT';
-  var billDate = printData.date || formatDate(printData.created_at || printData.bill_date || Date.now());
+  var billDate = formatBillDateTime(printData.created_at || printData.bill_date);
   var patientName = printData.patientName || printData.patient_name || 'Walk-in';
-  var uhid = printData.uhid || printData.patient_uhid || '';
+  var uhid = printData.uhid || printData.patient_uhid || printData.mrn || '';
+  var patAge = printData.age || printData.patient_age || '';
+  var patGender = printData.gender || printData.patient_gender || '';
+  if (patGender) { patGender = patGender.charAt(0).toUpperCase(); if (patGender !== 'M' && patGender !== 'F') patGender = patGender; }
   var subtotal = Number(printData.subtotal || 0);
   var discount = Number(printData.discount || 0);
   var gstAmount = Number(printData.gst || printData.gst_amount || 0);
@@ -6018,6 +6075,9 @@ function printBillHTML(printData) {
   var txnRef = printData.transaction_ref || '';
   if (!txnRef && printData.notes) { var txnM = (printData.notes || '').match(/Txn:\s*(\S+)/); if (txnM) txnRef = txnM[1]; }
 
+  /* Amount in words */
+  var wordsStr = amountToWords(total);
+
   var itemsHtml = '';
   for (var i = 0; i < items.length; i++) {
     var item = items[i];
@@ -6025,24 +6085,31 @@ function printBillHTML(printData) {
     var rate = item.rate || item.price || 0;
     var amt = item.amount || (qty * rate);
     var gstPct = item.gst_pct || item.gstPct || 0;
+    var hsn = item.hsn || item.sac || '';
     itemsHtml += '<tr>' +
       '<td style="padding:4px 6px;border-bottom:1px solid #eee;font-size:12px;">' + (i + 1) + '</td>' +
       '<td style="padding:4px 6px;border-bottom:1px solid #eee;font-size:12px;">' + (item.desc || item.description || item.name || '-') + (gstPct > 0 ? ' <small>(' + gstPct + '%)</small>' : '') + '</td>' +
+      (hsn ? '<td style="padding:4px 6px;border-bottom:1px solid #eee;font-size:10px;color:#666;">' + hsn + '</td>' : '') +
       '<td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:center;font-size:12px;">' + qty + '</td>' +
       '<td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:right;font-size:12px;">\u20B9' + Number(rate).toLocaleString('en-IN') + '</td>' +
       '<td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:right;font-size:12px;">\u20B9' + Number(amt).toLocaleString('en-IN') + '</td>' +
       '</tr>';
   }
 
+  /* Check if any item has HSN/SAC */
+  var hasHsn = false;
+  for (var hi = 0; hi < items.length; hi++) { if (items[hi].hsn || items[hi].sac) { hasHsn = true; break; } }
+  var colCount = hasHsn ? 6 : 5;
+
   var discountHtml = '';
   if (discount > 0) {
-    discountHtml = '<tr><td colspan="4" style="text-align:right;padding:4px 6px;font-size:12px;color:#dc2626;">Discount:</td><td style="text-align:right;padding:4px 6px;font-size:12px;color:#dc2626;">-\u20B9' + discount.toLocaleString('en-IN') + '</td></tr>';
+    discountHtml = '<tr><td colspan="' + (colCount - 1) + '" style="text-align:right;padding:4px 6px;font-size:12px;color:#dc2626;">Discount:</td><td style="text-align:right;padding:4px 6px;font-size:12px;color:#dc2626;">-\u20B9' + discount.toLocaleString('en-IN') + '</td></tr>';
   }
 
   var gstHtml = '';
   if (gstAmount > 0) {
-    gstHtml = '<tr><td colspan="4" style="text-align:right;padding:4px 6px;font-size:12px;">CGST:</td><td style="text-align:right;padding:4px 6px;font-size:12px;">\u20B9' + (gstAmount / 2).toFixed(2) + '</td></tr>';
-    gstHtml += '<tr><td colspan="4" style="text-align:right;padding:4px 6px;font-size:12px;">SGST:</td><td style="text-align:right;padding:4px 6px;font-size:12px;">\u20B9' + (gstAmount / 2).toFixed(2) + '</td></tr>';
+    gstHtml = '<tr><td colspan="' + (colCount - 1) + '" style="text-align:right;padding:4px 6px;font-size:12px;">CGST:</td><td style="text-align:right;padding:4px 6px;font-size:12px;">\u20B9' + (gstAmount / 2).toFixed(2) + '</td></tr>';
+    gstHtml += '<tr><td colspan="' + (colCount - 1) + '" style="text-align:right;padding:4px 6px;font-size:12px;">SGST:</td><td style="text-align:right;padding:4px 6px;font-size:12px;">\u20B9' + (gstAmount / 2).toFixed(2) + '</td></tr>';
   }
 
   var txnHtml = txnRef ? '<div style="font-size:10px;color:#444;text-align:center;">Txn Ref: ' + txnRef + '</div>' : '';
@@ -6056,33 +6123,42 @@ function printBillHTML(printData) {
   var gstinText = h.gstin ? '<div style="font-size:9px;color:#888;text-align:center;margin-top:8px;">GSTIN: ' + h.gstin + '</div>' : '';
   var regText = h.reg_number ? '<div style="font-size:9px;color:#888;text-align:center;">Reg No: ' + h.reg_number + '</div>' : '';
 
+  /* Patient details row */
+  var patRow1 = '<div style="font-size:12px;"><strong>Patient:</strong> ' + patientName + '</div>';
+  var patRow2 = uhid ? '<div style="font-size:12px;"><strong>UHID:</strong> ' + uhid + '</div>' : '';
+  var patRow3 = patAge ? '<div style="font-size:12px;"><strong>Age:</strong> ' + patAge + (typeof patAge === 'number' ? ' Yrs' : '') + '</div>' : '';
+  var patRow4 = patGender ? '<div style="font-size:12px;"><strong>Sex:</strong> ' + patGender + '</div>' : '';
+
   var html = '<!DOCTYPE html><html><head><title>Bill ' + billNumber + '</title>' +
     '<style>@media print { @page { size: ' + pageWidth + ' ' + pageHeight + '; margin: 8mm; } body { margin:0; } }</style>' +
     '</head><body style="font-family:Arial,sans-serif;max-width:' + pageWidth + ';margin:0 auto;padding:12px;">' +
+    '<div style="text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#333;margin-bottom:6px;">Tax Invoice</div>' +
     logoHtml +
     '<div style="text-align:center;font-size:16px;font-weight:700;margin-bottom:2px;">' + hospitalName + '</div>' +
-    tagline + addressLine + contactLine +
+    tagline + addressLine + contactLine + placeOfSupply +
     '<hr style="border:none;border-top:1px solid #333;margin:8px 0;">' +
     '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">' +
       '<div style="font-size:12px;"><strong>Bill #:</strong> ' + billNumber + '</div>' +
       '<div style="font-size:12px;"><strong>Date:</strong> ' + billDate + '</div>' +
     '</div>' +
-    '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">' +
-      '<div style="font-size:12px;"><strong>Patient:</strong> ' + patientName + '</div>' +
-      (uhid ? '<div style="font-size:12px;"><strong>UHID:</strong> ' + uhid + '</div>' : '') +
+    '<div style="display:flex;justify-content:space-between;margin-bottom:2px;">' +
+      patRow1 + patRow2 +
     '</div>' +
+    ((patAge || patGender) ? '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">' + patRow3 + patRow4 + '</div>' : '<div style="margin-bottom:8px;"></div>') +
     '<table style="width:100%;border-collapse:collapse;">' +
       '<thead><tr style="background:#f8f8f8;">' +
         '<th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">#</th>' +
         '<th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">Item</th>' +
+        (hasHsn ? '<th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">HSN/SAC</th>' : '') +
         '<th style="padding:4px 6px;text-align:center;font-size:11px;border-bottom:2px solid #333;">Qty</th>' +
         '<th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">Rate</th>' +
         '<th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">Amount</th>' +
       '</tr></thead><tbody>' + itemsHtml + '</tbody>' +
       '<tfoot>' +
-        '<tr><td colspan="4" style="text-align:right;padding:6px;font-size:12px;">Subtotal:</td><td style="text-align:right;padding:6px;font-size:12px;">\u20B9' + subtotal.toLocaleString('en-IN') + '</td></tr>' +
+        '<tr><td colspan="' + (colCount - 1) + '" style="text-align:right;padding:6px;font-size:12px;">Subtotal:</td><td style="text-align:right;padding:6px;font-size:12px;">\u20B9' + subtotal.toLocaleString('en-IN') + '</td></tr>' +
         discountHtml + gstHtml +
-        '<tr style="border-top:2px solid #333;"><td colspan="4" style="text-align:right;padding:6px;font-size:14px;font-weight:700;">TOTAL:</td><td style="text-align:right;padding:6px;font-size:14px;font-weight:700;">\u20B9' + total.toLocaleString('en-IN') + '</td></tr>' +
+        '<tr style="border-top:2px solid #333;"><td colspan="' + (colCount - 1) + '" style="text-align:right;padding:6px;font-size:14px;font-weight:700;">TOTAL:</td><td style="text-align:right;padding:6px;font-size:14px;font-weight:700;">\u20B9' + total.toLocaleString('en-IN') + '</td></tr>' +
+        '<tr><td colspan="' + colCount + '" style="padding:6px;font-size:11px;font-style:italic;border-top:1px solid #eee;">Amount in words: ' + wordsStr + '</td></tr>' +
       '</tfoot>' +
     '</table>' +
     '<div style="margin-top:8px;padding:6px;background:#f9f9f9;border-radius:4px;">' +
@@ -10149,8 +10225,11 @@ function formatDate(ts) {
   if (!ts) return '';
   var n = typeof ts === 'number' ? ts : Number(ts);
   if (n > 0 && n < 9999999999) n = n * 1000;
-  if (n > 0) return new Date(n).toLocaleDateString('en-IN');
-  return new Date(ts).toLocaleDateString('en-IN');
+  var d = n > 0 ? new Date(n) : new Date(ts);
+  if (isNaN(d.getTime())) return '';
+  var dd = ('0' + d.getDate()).slice(-2);
+  var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+  return dd + '/' + mm + '/' + d.getFullYear();
 }
 
 function populateDoctorSelect(selectId) {
