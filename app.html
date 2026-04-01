@@ -748,6 +748,15 @@ table.mw-table tr:hover td { background: var(--mw-bg); }
 .bill-pay-btn.active { background:var(--mw-primary);color:#fff;border-color:var(--mw-primary);font-weight:600; }
 .bill-item-row td { padding:4px 6px;vertical-align:middle; }
 .bill-item-row input { border:1px solid var(--mw-border);border-radius:4px;padding:4px 6px;font-size:12px;font-family:var(--mw-font);width:100%; }
+/* Discount toggle */
+.disc-toggle{padding:2px 8px;font-size:11px;font-weight:700;border:none;background:var(--mw-surface);cursor:pointer;font-family:var(--mw-font);color:var(--mw-text-3)}
+.disc-toggle.active{background:var(--mw-primary);color:#fff}
+/* Bill row status highlights */
+tr.bill-row-paid{background:#F0FDF4}
+tr.bill-row-pending{background:#FEF3C7}
+tr.bill-row-partial{background:#FFF7ED}
+tr.bill-row-cancelled{background:#F3F4F6;opacity:0.7}
+tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
 /* Payment mode badges */
 .pay-badge{display:inline-block;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:600;text-transform:capitalize}
 .pay-cash{background:#D1FAE5;color:#065F46}
@@ -1385,8 +1394,8 @@ table.mw-table tr:hover td { background: var(--mw-bg); }
             <button class="btn btn-primary btn-sm" onclick="openNewBill()">+ New Bill</button>
           </div>
           <div class="table-wrap">
-            <div class="table-toolbar" style="display:flex;gap:10px;align-items:center">
-              <input type="text" class="table-search" style="flex:1" placeholder="Search by bill number, patient name..." id="billSearch" oninput="filterBills()">
+            <div class="table-toolbar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <input type="text" class="table-search" style="flex:1;min-width:180px" placeholder="Search by bill number, patient name..." id="billSearch" oninput="filterBills()">
               <select id="billStatusFilter" onchange="filterBills()" style="border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:6px 10px;font-size:13px;background:var(--mw-surface)">
                 <option value="">All Status</option>
                 <option value="paid">Paid</option>
@@ -1394,6 +1403,15 @@ table.mw-table tr:hover td { background: var(--mw-bg); }
                 <option value="partial">Partial</option>
                 <option value="cancelled">Cancelled</option>
               </select>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin:10px 0;flex-wrap:wrap">
+              <input type="date" id="billDateFrom" style="border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:5px 8px;font-size:12px;font-family:var(--mw-font)" onchange="filterBills()">
+              <span style="font-size:12px;color:var(--mw-text-3)">to</span>
+              <input type="date" id="billDateTo" style="border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:5px 8px;font-size:12px;font-family:var(--mw-font)" onchange="filterBills()">
+              <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="setBillDateRange('today')">Today</button>
+              <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="setBillDateRange('week')">This Week</button>
+              <button class="btn btn-outline btn-sm" style="font-size:11px;background:var(--mw-primary);color:#fff;border-color:var(--mw-primary)" onclick="setBillDateRange('month')">This Month</button>
+              <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="setBillDateRange('all')">All</button>
             </div>
             <table class="mw-table">
               <thead>
@@ -1488,13 +1506,18 @@ table.mw-table tr:hover td { background: var(--mw-bg); }
                     <span style="color:var(--mw-text-2)">Subtotal</span>
                     <span id="billSubtotal">₹0.00</span>
                   </div>
-                  <div style="display:flex;justify-content:space-between">
+                  <div style="display:flex;justify-content:space-between;align-items:center">
                     <span style="color:var(--mw-text-2)">Discount</span>
                     <div style="display:flex;align-items:center;gap:4px">
-                      <span>₹</span>
-                      <input type="number" id="billDiscount" value="0" min="0" style="width:60px;border:1px solid var(--mw-border);border-radius:4px;padding:2px 4px;font-size:12px;text-align:right" oninput="recalcBill()">
+                      <div style="display:inline-flex;border:1px solid var(--mw-border);border-radius:4px;overflow:hidden">
+                        <button id="discModeAmt" class="disc-toggle active" onclick="setDiscMode('amount')">₹</button>
+                        <button id="discModePct" class="disc-toggle" onclick="setDiscMode('percent')">%</button>
+                      </div>
+                      <input type="number" id="billDiscountInput" value="0" min="0" style="width:60px;border:1px solid var(--mw-border);border-radius:4px;padding:2px 4px;font-size:12px;text-align:right" oninput="recalcBill()">
                     </div>
                   </div>
+                  <div id="discountDisplay" style="text-align:right;font-size:11px;color:var(--mw-text-3);margin-top:2px"></div>
+                  <input type="hidden" id="billDiscount" value="0">
                   <div style="display:flex;justify-content:space-between">
                     <span style="color:var(--mw-text-2)">CGST</span>
                     <span id="billCGST">₹0.00</span>
@@ -1520,6 +1543,12 @@ table.mw-table tr:hover td { background: var(--mw-bg); }
                     <button class="bill-pay-btn" data-mode="online" onclick="selectPayMode(this)">&#128421; Online</button>
                     <button class="bill-pay-btn" data-mode="pending" onclick="selectPayMode(this)">&#128336; Pending</button>
                   </div>
+                </div>
+
+                <!-- Transaction ref (shown for UPI/Card) -->
+                <div id="billTxnRefWrap" style="display:none;margin-top:10px">
+                  <label style="font-size:12px;color:var(--mw-text-2)">Transaction ID / Reference</label>
+                  <input type="text" id="billTxnRef" placeholder="Enter UPI ref no. or card transaction ID" style="width:100%;margin-top:4px;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:7px 10px;font-size:13px;font-family:var(--mw-font)">
                 </div>
 
                 <!-- Amount paid -->
@@ -5223,7 +5252,8 @@ function loadBills() {
       if (!Array.isArray(bills)) bills = [];
       billCache = bills;
       appState.billCache = bills;
-      renderBillTable(bills);
+      initBillDateRange();
+      filterBills();
       /* Update dashboard stats */
       var total = 0; var pending = 0;
       for (var i = 0; i < bills.length; i++) {
@@ -5249,21 +5279,26 @@ function renderBillTable(bills) {
   for (var i = 0; i < bills.length; i++) {
     var b = bills[i];
     var payClass = getPayBadgeClass(b.payment_mode);
-    var statusClass = getBillStatusClass(b.payment_status);
+    var status = (b.payment_status || 'paid').toLowerCase();
+    var statusClass = getBillStatusClass(status);
+    var rowClass = 'bill-row-' + status;
     var bItems = b.items || [];
     if (typeof bItems === 'string') { try { bItems = JSON.parse(bItems); } catch(e) { bItems = []; } }
     var itemCount = Array.isArray(bItems) ? bItems.length : 1;
-    var patName = b.patient_name || b.patient_first_name || 'Walk-in';
-    html += '<tr>';
+    var patName = b.patient_name || b.patient_first_name || '';
+    if (!patName || patName === '—') patName = '';
+    var patDisplay = patName ? '<strong>' + patName + '</strong>' : '<em style="color:var(--mw-text-3)">Walk-in</em>';
+    var bid = String(b.id || b.bill_id);
+    html += '<tr class="' + rowClass + '">';
     html += '<td style="font-family:var(--mw-font-mono);font-size:12px;color:var(--mw-primary)">' + (b.bill_number || b.id || '—') + '</td>';
-    html += '<td><strong>' + patName + '</strong></td>';
+    html += '<td>' + patDisplay + '</td>';
     html += '<td style="font-size:12px;color:var(--mw-text-3)">' + itemCount + ' item(s)</td>';
     html += '<td>\u20B9' + Number(b.subtotal || 0).toLocaleString('en-IN') + '</td>';
     html += '<td style="font-size:12px">\u20B9' + Number(b.gst_amount || 0).toLocaleString('en-IN') + '</td>';
     html += '<td style="font-weight:600">\u20B9' + Number(b.total || b.total_amount || b.amount || 0).toLocaleString('en-IN') + '</td>';
-    html += '<td><span class="pay-badge ' + payClass + '">' + (b.payment_mode || 'cash') + '</span> <span class="pay-badge ' + statusClass + '">' + (b.payment_status || 'paid') + '</span></td>';
+    html += '<td><span class="pay-badge ' + payClass + '">' + (b.payment_mode || 'cash') + '</span> <span class="pay-badge ' + statusClass + '" style="font-size:12px;font-weight:700;padding:4px 10px">' + status + '</span></td>';
     html += '<td style="font-size:12px;color:var(--mw-text-3)">' + formatDate(b.created_at) + '</td>';
-    html += '<td><button class="btn btn-ghost btn-sm" onclick="viewBillDetail(\'' + String(b.id || b.bill_id) + '\')">View</button></td>';
+    html += '<td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="viewBillDetail(\'' + bid + '\')">View</button> <button class="btn btn-ghost btn-sm" onclick="printBillById(\'' + bid + '\')" title="Print">\u2399</button></td>';
     html += '</tr>';
   }
   tbody.innerHTML = html;
@@ -5272,14 +5307,56 @@ function renderBillTable(bills) {
 function filterBills() {
   var search = (document.getElementById('billSearch').value || '').toLowerCase();
   var status = document.getElementById('billStatusFilter').value;
+  var fromEl = document.getElementById('billDateFrom');
+  var toEl = document.getElementById('billDateTo');
+  var fromTs = fromEl && fromEl.value ? new Date(fromEl.value).getTime() : 0;
+  var toTs = toEl && toEl.value ? new Date(toEl.value).getTime() + 86400000 : Infinity;
   var filtered = billCache.filter(function(b) {
     var matchSearch = !search ||
       (b.bill_number || '').toLowerCase().indexOf(search) >= 0 ||
       (b.patient_name || b.patient_first_name || '').toLowerCase().indexOf(search) >= 0;
     var matchStatus = !status || (b.payment_status || '') === status;
-    return matchSearch && matchStatus;
+    var ts = Number(b.created_at || 0);
+    var matchDate = ts >= fromTs && ts < toTs;
+    return matchSearch && matchStatus && matchDate;
   });
   renderBillTable(filtered);
+}
+
+function setBillDateRange(range) {
+  var now = new Date();
+  var fromEl = document.getElementById('billDateFrom');
+  var toEl = document.getElementById('billDateTo');
+  var today = now.toISOString().split('T')[0];
+  if (range === 'today') {
+    fromEl.value = today;
+    toEl.value = today;
+  } else if (range === 'week') {
+    var dayOfWeek = now.getDay();
+    var monday = new Date(now);
+    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+    fromEl.value = monday.toISOString().split('T')[0];
+    toEl.value = today;
+  } else if (range === 'month') {
+    fromEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-01';
+    toEl.value = today;
+  } else {
+    fromEl.value = '';
+    toEl.value = '';
+  }
+  filterBills();
+}
+
+function initBillDateRange() {
+  var now = new Date();
+  var fromEl = document.getElementById('billDateFrom');
+  var toEl = document.getElementById('billDateTo');
+  if (fromEl && !fromEl.value) {
+    fromEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-01';
+  }
+  if (toEl && !toEl.value) {
+    toEl.value = now.toISOString().split('T')[0];
+  }
 }
 
 function openNewBill(prefillPatientId) {
@@ -5295,7 +5372,16 @@ function openNewBill(prefillPatientId) {
   document.getElementById('billPatientDropdown').style.display = 'none';
   document.getElementById('billNotes').value = '';
   document.getElementById('billDiscount').value = '0';
+  document.getElementById('billDiscountInput').value = '0';
   document.getElementById('billAmountPaid').value = '';
+  document.getElementById('billTxnRef').value = '';
+  document.getElementById('billTxnRefWrap').style.display = 'none';
+  discountMode = 'amount';
+  var dma = document.getElementById('discModeAmt');
+  var dmp = document.getElementById('discModePct');
+  if (dma) { dma.classList.add('active'); }
+  if (dmp) { dmp.classList.remove('active'); }
+  document.getElementById('discountDisplay').textContent = '';
   renderBillItems();
   recalcBill();
   /* Select pay mode reset */
@@ -5401,25 +5487,61 @@ function renderBillItems() {
   };
 }
 
+var discountMode = 'amount';
+
+function setDiscMode(mode) {
+  discountMode = mode;
+  var dma = document.getElementById('discModeAmt');
+  var dmp = document.getElementById('discModePct');
+  if (mode === 'amount') { dma.classList.add('active'); dmp.classList.remove('active'); }
+  else { dmp.classList.add('active'); dma.classList.remove('active'); }
+  recalcBill();
+}
+
 function recalcBill() {
   var subtotal = 0; var totalGST = 0;
   for (var i = 0; i < billItems.length; i++) {
     var it = billItems[i];
     var lineAmt = it.qty * it.rate;
-    var gstAmt  = lineAmt * (it.gstPct / 100);
     subtotal += lineAmt;
-    totalGST += gstAmt;
   }
-  var discount = Number(document.getElementById('billDiscount').value) || 0;
+  /* Discount applied on subtotal BEFORE GST */
+  var discInput = Number(document.getElementById('billDiscountInput').value) || 0;
+  var discountAmt = 0;
+  var discountPct = 0;
+  if (discountMode === 'percent') {
+    discountPct = Math.min(discInput, 100);
+    discountAmt = subtotal * (discountPct / 100);
+  } else {
+    discountAmt = Math.min(discInput, subtotal);
+    discountPct = subtotal > 0 ? (discountAmt / subtotal) * 100 : 0;
+  }
+  /* Store actual discount amount in hidden field for saveBill */
+  document.getElementById('billDiscount').value = discountAmt.toFixed(2);
+  /* Show discount display */
+  var discEl = document.getElementById('discountDisplay');
+  if (discEl) {
+    if (discountAmt > 0) discEl.textContent = '\u20B9' + discountAmt.toFixed(2) + ' (' + discountPct.toFixed(1) + '%)';
+    else discEl.textContent = '';
+  }
+  /* GST on taxable amount (after discount) */
+  var taxable = subtotal - discountAmt;
+  for (var j = 0; j < billItems.length; j++) {
+    var it2 = billItems[j];
+    var lineAmt2 = it2.qty * it2.rate;
+    var proportion = subtotal > 0 ? lineAmt2 / subtotal : 0;
+    var lineAfterDisc = lineAmt2 - (discountAmt * proportion);
+    totalGST += lineAfterDisc * (it2.gstPct / 100);
+  }
   var cgst = totalGST / 2;
   var sgst = totalGST / 2;
-  var total = subtotal + totalGST - discount;
+  var total = taxable + totalGST;
   if (total < 0) total = 0;
 
-  document.getElementById('billSubtotal').textContent = '₹' + subtotal.toFixed(2);
-  document.getElementById('billCGST').textContent     = '₹' + cgst.toFixed(2);
-  document.getElementById('billSGST').textContent     = '₹' + sgst.toFixed(2);
-  document.getElementById('billTotal').textContent    = '₹' + total.toFixed(2);
+  document.getElementById('billSubtotal').textContent = '\u20B9' + subtotal.toFixed(2);
+  document.getElementById('billCGST').textContent     = '\u20B9' + cgst.toFixed(2);
+  document.getElementById('billSGST').textContent     = '\u20B9' + sgst.toFixed(2);
+  document.getElementById('billTotal').textContent    = '\u20B9' + total.toFixed(2);
   calcBalance();
 }
 
@@ -5439,6 +5561,9 @@ function selectPayMode(btn) {
   document.querySelectorAll('.bill-pay-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
   billPayMode = btn.getAttribute('data-mode');
+  /* Show txn ref for UPI/Card */
+  var txnWrap = document.getElementById('billTxnRefWrap');
+  if (txnWrap) txnWrap.style.display = (billPayMode === 'upi' || billPayMode === 'card') ? '' : 'none';
   /* Auto-fill amount paid if cash/upi/card */
   if (billPayMode !== 'pending' && billPayMode !== 'insurance') {
     var totalEl = document.getElementById('billTotal');
@@ -5525,19 +5650,29 @@ function saveBill() {
     return;
   }
 
-  var subtotal = 0; var totalGST = 0;
+  var subtotal = 0;
   for (var i = 0; i < billItems.length; i++) {
-    var it = billItems[i];
-    var lineAmt = it.qty * it.rate;
-    subtotal += lineAmt;
-    totalGST += lineAmt * (it.gstPct / 100);
+    subtotal += billItems[i].qty * billItems[i].rate;
   }
   var discount = Number(document.getElementById('billDiscount').value) || 0;
-  var total    = subtotal + totalGST - discount;
-  var paid     = Number(document.getElementById('billAmountPaid').value) || 0;
+  var taxable = subtotal - discount;
+  var totalGST = 0;
+  for (var g = 0; g < billItems.length; g++) {
+    var git = billItems[g];
+    var gLineAmt = git.qty * git.rate;
+    var gProportion = subtotal > 0 ? gLineAmt / subtotal : 0;
+    var gAfterDisc = gLineAmt - (discount * gProportion);
+    totalGST += gAfterDisc * (git.gstPct / 100);
+  }
+  var total = taxable + totalGST;
+  if (total < 0) total = 0;
+  var paid = Number(document.getElementById('billAmountPaid').value) || 0;
   var payStatus = (billPayMode === 'pending' || billPayMode === 'credit') ? 'pending' :
                   (billPayMode === 'insurance') ? 'pending' :
                   paid >= total ? 'paid' : paid > 0 ? 'partial' : 'pending';
+  var txnRef = (document.getElementById('billTxnRef').value || '').trim();
+  var notesVal = document.getElementById('billNotes').value.trim() || '';
+  if (txnRef) notesVal = (notesVal ? notesVal + ' | ' : '') + 'Txn: ' + txnRef;
 
   var pid = billPatientData ? String(billPatientData.patient_id || billPatientData.id) : null;
   var patName = billPatientData ? ((billPatientData.first_name || '') + ' ' + (billPatientData.last_name || '')).trim() : 'Walk-in';
@@ -5555,7 +5690,7 @@ function saveBill() {
     balance:        Math.max(0, total - paid),
     payment_mode:   billPayMode,
     payment_status: payStatus,
-    notes:          document.getElementById('billNotes').value.trim() || null
+    notes:          notesVal || null
   };
 
   var saveBtn = document.querySelector('#billPOSView .btn-primary');
@@ -5586,23 +5721,27 @@ function saveBill() {
 }
 
 function printBill() {
-  if (!billPatientData) { showToast('Select a patient first', 'error'); return; }
-  /* Build a bill object from the current POS state and print it */
-  var subtotal = 0; var totalGST = 0;
-  for (var i = 0; i < billItems.length; i++) {
-    var it = billItems[i];
-    var lineAmt = it.qty * it.rate;
-    subtotal += lineAmt;
-    totalGST += lineAmt * (it.gstPct / 100);
-  }
+  if (billItems.length === 0) { showToast('Add items to the bill first', 'error'); return; }
+  var subtotal = 0;
+  for (var i = 0; i < billItems.length; i++) { subtotal += billItems[i].qty * billItems[i].rate; }
   var discount = Number(document.getElementById('billDiscount').value) || 0;
-  var total = subtotal + totalGST - discount;
+  var taxable = subtotal - discount;
+  var totalGST = 0;
+  for (var g = 0; g < billItems.length; g++) {
+    var git = billItems[g]; var gla = git.qty * git.rate;
+    var gp = subtotal > 0 ? gla / subtotal : 0;
+    totalGST += (gla - discount * gp) * (git.gstPct / 100);
+  }
+  var total = taxable + totalGST; if (total < 0) total = 0;
   var paid = Number(document.getElementById('billAmountPaid').value) || 0;
+  var patName = billPatientData ? ((billPatientData.first_name || '') + ' ' + (billPatientData.last_name || '')).trim() : 'Walk-in';
+  var patUhid = billPatientData ? (billPatientData.uhid || billPatientData.mrn || '') : '';
+  var txnRef = (document.getElementById('billTxnRef').value || '').trim();
   var fakeBill = {
     bill_number: 'DRAFT',
     created_at: Date.now(),
-    patient_name: ((billPatientData.first_name || '') + ' ' + (billPatientData.last_name || '')).trim(),
-    patient_uhid: billPatientData.uhid || billPatientData.mrn || '',
+    patient_name: patName,
+    patient_uhid: patUhid,
     items: billItems.map(function(it) { return { desc: it.desc, qty: it.qty, rate: it.rate, gst_pct: it.gstPct }; }),
     subtotal: subtotal,
     discount: discount,
@@ -5611,9 +5750,19 @@ function printBill() {
     paid: paid,
     balance: Math.max(0, total - paid),
     payment_mode: billPayMode,
-    payment_status: paid >= total ? 'paid' : paid > 0 ? 'partial' : 'pending'
+    payment_status: paid >= total ? 'paid' : paid > 0 ? 'partial' : 'pending',
+    transaction_ref: txnRef
   };
   printBillHTML(fakeBill);
+}
+
+function printBillById(billId) {
+  var bill = null;
+  for (var i = 0; i < billCache.length; i++) {
+    if (String(billCache[i].id || billCache[i].bill_id) === String(billId)) { bill = billCache[i]; break; }
+  }
+  if (bill) printBillHTML(bill);
+  else showToast('Bill not found', 'error');
 }
 
 /* ── View Bill Detail ─────────────────────────────────────────── */
@@ -5677,10 +5826,17 @@ function viewBillDetail(billId) {
   /* Payment info */
   html += '<div style="display:flex;gap:12px;margin-top:16px;padding-top:12px;border-top:1px solid var(--mw-border)">';
   html += '<div><span class="bd-label">Payment: </span><span class="pay-badge ' + payClass + '">' + (bill.payment_mode || 'cash') + '</span></div>';
-  html += '<div><span class="bd-label">Status: </span><span class="pay-badge ' + statusClass + '">' + (bill.payment_status || 'paid') + '</span></div>';
+  html += '<div><span class="bd-label">Status: </span><span class="pay-badge ' + statusClass + '" style="font-size:12px;font-weight:700;padding:4px 10px">' + (bill.payment_status || 'paid') + '</span></div>';
   if (Number(bill.paid || 0) > 0) html += '<div><span class="bd-label">Paid: </span><span class="bd-value">\u20B9' + Number(bill.paid).toFixed(2) + '</span></div>';
   if (Number(bill.balance || 0) > 0) html += '<div><span class="bd-label">Balance: </span><span class="bd-value" style="color:var(--mw-danger)">\u20B9' + Number(bill.balance).toFixed(2) + '</span></div>';
   html += '</div>';
+
+  /* Transaction ref */
+  var detailTxn = bill.transaction_ref || '';
+  if (!detailTxn && bill.notes) { var txnM = (bill.notes || '').match(/Txn:\s*(\S+)/); if (txnM) detailTxn = txnM[1]; }
+  if (detailTxn) {
+    html += '<div style="margin-top:8px;font-size:13px"><span class="bd-label">Transaction Ref: </span><span class="bd-value" style="font-family:var(--mw-font-mono)">' + detailTxn + '</span></div>';
+  }
 
   if (bill.notes) {
     html += '<div style="margin-top:12px;padding:10px;background:var(--mw-bg);border-radius:var(--mw-radius);font-size:13px;color:var(--mw-text-2)"><strong>Notes:</strong> ' + bill.notes + '</div>';
@@ -5709,23 +5865,30 @@ function printBillHTML(bill) {
   var hospAddr = appState.hospitalAddress || '';
   var hospPhone = appState.hospitalPhone || '';
   var hospGstin = appState.hospitalGstin || '';
+  var txnRef = bill.transaction_ref || '';
+  if (!txnRef && bill.notes) {
+    var txnMatch = (bill.notes || '').match(/Txn:\s*(\S+)/);
+    if (txnMatch) txnRef = txnMatch[1];
+  }
 
   var h = '<!DOCTYPE html><html><head><title>Bill ' + (bill.bill_number || '') + '</title>';
   h += '<style>';
-  h += 'body{font-family:Arial,sans-serif;max-width:380px;margin:0 auto;padding:16px;font-size:12px;color:#333}';
-  h += '.hdr{text-align:center;border-bottom:1px dashed #999;padding-bottom:10px;margin-bottom:10px}';
-  h += '.hdr h2{font-size:16px;margin:0 0 2px}';
-  h += '.hdr p{margin:2px 0;font-size:11px;color:#666}';
-  h += '.info{display:flex;justify-content:space-between;margin-bottom:10px;font-size:11px}';
-  h += 'table{width:100%;border-collapse:collapse;margin:8px 0}';
-  h += 'th{text-align:left;font-size:10px;color:#666;border-bottom:1px solid #ccc;padding:4px 2px}';
-  h += 'th:last-child,td:last-child{text-align:right}';
-  h += 'td{padding:4px 2px;border-bottom:1px solid #eee;font-size:12px}';
-  h += '.totals{border-top:1px dashed #999;padding-top:8px;margin-top:4px}';
-  h += '.totals .row{display:flex;justify-content:space-between;padding:2px 0}';
-  h += '.totals .grand{font-size:16px;font-weight:700;border-top:1px dashed #999;padding-top:6px;margin-top:4px}';
-  h += '.footer{text-align:center;border-top:1px dashed #999;padding-top:10px;margin-top:16px;font-size:11px;color:#666}';
-  h += '@media print{body{margin:0;padding:8px}}';
+  h += 'body{font-family:Arial,Helvetica,sans-serif;max-width:380px;margin:0 auto;padding:16px;font-size:13px;color:#000}';
+  h += '.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:12px}';
+  h += '.hdr h2{font-size:22px;font-weight:900;margin:0 0 4px;text-transform:uppercase;letter-spacing:1px}';
+  h += '.hdr p{margin:2px 0;font-size:12px;color:#000}';
+  h += '.info{display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px;color:#000}';
+  h += 'table{width:100%;border-collapse:collapse;margin:10px 0}';
+  h += 'th{text-align:left;font-size:11px;font-weight:700;border:1px solid #000;padding:5px 6px;background:#f0f0f0}';
+  h += 'th:nth-child(2){text-align:center;width:40px}th:nth-child(3),th:nth-child(4){text-align:right}';
+  h += 'td{padding:5px 6px;border:1px solid #000;font-size:12px;color:#000}';
+  h += 'td:nth-child(2){text-align:center}td:nth-child(3),td:nth-child(4){text-align:right}';
+  h += '.totals{border-top:2px solid #000;padding-top:10px;margin-top:6px}';
+  h += '.totals .row{display:flex;justify-content:space-between;padding:3px 0;font-size:13px}';
+  h += '.totals .grand{font-size:18px;font-weight:900;border-top:2px solid #000;padding-top:8px;margin-top:6px}';
+  h += '.footer{text-align:center;border-top:2px solid #000;padding-top:12px;margin-top:18px;font-size:13px;color:#000;font-weight:600}';
+  h += '.footer small{font-size:10px;font-weight:400;color:#666}';
+  h += '@media print{body{margin:0;padding:8px;-webkit-print-color-adjust:exact}}';
   h += '</style></head><body>';
 
   h += '<div class="hdr">';
@@ -5740,32 +5903,35 @@ function printBillHTML(bill) {
   if (bill.patient_uhid) h += '<div><strong>UHID:</strong> ' + bill.patient_uhid + '</div>';
   h += '</div>';
 
-  h += '<table><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Amt</th></tr></thead><tbody>';
+  h += '<table><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>';
   for (var i = 0; i < items.length; i++) {
     var it = items[i];
     var qty = it.qty || it.quantity || 1;
     var rate = it.rate || it.price || 0;
     var gst = it.gst_pct || it.gstPct || 0;
     var amt = qty * rate;
-    var gstAmt = amt * (gst / 100);
-    h += '<tr><td>' + (it.desc || it.description || it.name || '-') + (gst > 0 ? ' <small>(' + gst + '% GST)</small>' : '') + '</td>';
-    h += '<td style="text-align:center">' + qty + '</td>';
-    h += '<td style="text-align:right">\u20B9' + rate + '</td>';
-    h += '<td>\u20B9' + (amt + gstAmt).toFixed(2) + '</td></tr>';
+    h += '<tr><td>' + (it.desc || it.description || it.name || '-') + (gst > 0 ? ' <small>(' + gst + '%)</small>' : '') + '</td>';
+    h += '<td>' + qty + '</td>';
+    h += '<td>\u20B9' + Number(rate).toLocaleString('en-IN') + '</td>';
+    h += '<td>\u20B9' + amt.toFixed(2) + '</td></tr>';
   }
   h += '</tbody></table>';
 
   h += '<div class="totals">';
   h += '<div class="row"><span>Subtotal</span><span>\u20B9' + Number(bill.subtotal || 0).toFixed(2) + '</span></div>';
   if (Number(bill.discount || 0) > 0) h += '<div class="row"><span>Discount</span><span>-\u20B9' + Number(bill.discount).toFixed(2) + '</span></div>';
-  if (Number(bill.gst_amount || 0) > 0) h += '<div class="row"><span>GST</span><span>\u20B9' + Number(bill.gst_amount).toFixed(2) + '</span></div>';
-  h += '<div class="row grand"><span>Total</span><span>\u20B9' + Number(bill.total || bill.total_amount || 0).toFixed(2) + '</span></div>';
-  h += '<div class="row"><span>Payment</span><span>' + (bill.payment_mode || 'Cash') + '</span></div>';
-  if (Number(bill.paid || 0) > 0) h += '<div class="row"><span>Paid</span><span>\u20B9' + Number(bill.paid).toFixed(2) + '</span></div>';
-  if (Number(bill.balance || 0) > 0) h += '<div class="row"><span>Balance Due</span><span style="color:#991B1B">\u20B9' + Number(bill.balance).toFixed(2) + '</span></div>';
+  if (Number(bill.gst_amount || 0) > 0) {
+    h += '<div class="row"><span>CGST</span><span>\u20B9' + (Number(bill.gst_amount) / 2).toFixed(2) + '</span></div>';
+    h += '<div class="row"><span>SGST</span><span>\u20B9' + (Number(bill.gst_amount) / 2).toFixed(2) + '</span></div>';
+  }
+  h += '<div class="row grand"><span>GRAND TOTAL</span><span>\u20B9' + Number(bill.total || bill.total_amount || 0).toFixed(2) + '</span></div>';
+  h += '<div class="row"><span>Payment Mode</span><span style="text-transform:uppercase;font-weight:700">' + (bill.payment_mode || 'Cash') + '</span></div>';
+  if (txnRef) h += '<div class="row"><span>Txn Ref</span><span>' + txnRef + '</span></div>';
+  if (Number(bill.paid || 0) > 0) h += '<div class="row"><span>Amount Paid</span><span>\u20B9' + Number(bill.paid).toFixed(2) + '</span></div>';
+  if (Number(bill.balance || 0) > 0) h += '<div class="row" style="font-weight:700"><span>Balance Due</span><span>\u20B9' + Number(bill.balance).toFixed(2) + '</span></div>';
   h += '</div>';
 
-  h += '<div class="footer"><p>Thank you, visit again!</p><p style="margin-top:4px;font-size:10px">Powered by Hemato HMS</p></div>';
+  h += '<div class="footer"><p>Thank you for visiting!</p><p><small>Powered by Hemato HMS</small></p></div>';
   h += '</body></html>';
 
   var w = window.open('', '_blank', 'width=420,height=700');
