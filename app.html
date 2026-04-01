@@ -3016,14 +3016,25 @@ function loadApp() {
       appState.user = userData.user || userData;
       appState.hospital = hospitalData.hospital || hospitalData.settings || hospitalData;
 
-      /* Merge any locally-saved settings (uhid_prefix etc) in case backend doesn't persist all fields */
+      /* Merge settings JSONB into appState.hospital for easy access */
+      if (appState.hospital && appState.hospital.settings && typeof appState.hospital.settings === 'object') {
+        var sj = appState.hospital.settings;
+        for (var sk in sj) {
+          if (sj.hasOwnProperty(sk) && appState.hospital[sk] === undefined) {
+            appState.hospital[sk] = sj[sk];
+          }
+        }
+      }
+      /* Merge locally-saved settings as fallback for fields not yet persisted to backend */
       try {
         var savedSettings = localStorage.getItem('mw_hospital_settings');
         if (savedSettings) {
           var ss = JSON.parse(savedSettings);
-          /* Only fill in fields that are blank/missing from server response */
-          if (!appState.hospital.uhid_prefix && ss.uhid_prefix) appState.hospital.uhid_prefix = ss.uhid_prefix;
-          if ((!appState.hospital.uhid_sequence || appState.hospital.uhid_sequence === 0) && ss.uhid_sequence) appState.hospital.uhid_sequence = ss.uhid_sequence;
+          for (var lk in ss) {
+            if (ss.hasOwnProperty(lk) && (appState.hospital[lk] === undefined || appState.hospital[lk] === null || appState.hospital[lk] === '')) {
+              appState.hospital[lk] = ss[lk];
+            }
+          }
         }
       } catch(e) {}
 
