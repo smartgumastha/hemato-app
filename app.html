@@ -1416,10 +1416,10 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
             </div>
             <table class="mw-table">
               <thead>
-                <tr><th>Bill #</th><th>Patient</th><th>Items</th><th>Amount</th><th>GST</th><th>Total</th><th>Payment</th><th>Date</th><th>Actions</th></tr>
+                <tr><th>Bill #</th><th>Patient</th><th>Items</th><th>Subtotal</th><th>Disc</th><th>GST</th><th>Total</th><th>Payment</th><th>Date</th><th>Actions</th></tr>
               </thead>
               <tbody id="billTableBody">
-                <tr><td colspan="9" class="empty-state" style="padding:40px"><div class="empty-state-title">No bills yet</div><div class="empty-state-text">Click + New Bill to create the first invoice</div></td></tr>
+                <tr><td colspan="10" class="empty-state" style="padding:40px"><div class="empty-state-title">No bills yet</div><div class="empty-state-text">Click + New Bill to create the first invoice</div></td></tr>
               </tbody>
             </table>
           </div>
@@ -5273,7 +5273,7 @@ function renderBillTable(bills) {
   var tbody = document.getElementById('billTableBody');
   if (!tbody) return;
   if (!bills || bills.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty-state" style="padding:40px"><div class="empty-state-title">No bills yet</div><div class="empty-state-text">Click + New Bill to create first invoice</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-state" style="padding:40px"><div class="empty-state-title">No bills yet</div><div class="empty-state-text">Click + New Bill to create first invoice</div></td></tr>';
     return;
   }
   var html = '';
@@ -5295,6 +5295,8 @@ function renderBillTable(bills) {
     html += '<td>' + patDisplay + '</td>';
     html += '<td style="font-size:12px;color:var(--mw-text-3)">' + itemCount + ' item(s)</td>';
     html += '<td>\u20B9' + Number(b.subtotal || 0).toLocaleString('en-IN') + '</td>';
+    var disc = Number(b.discount || 0);
+    html += '<td style="font-size:12px;color:' + (disc > 0 ? 'var(--mw-danger)' : 'var(--mw-text-3)') + '">' + (disc > 0 ? '-\u20B9' + disc.toLocaleString('en-IN') : '—') + '</td>';
     html += '<td style="font-size:12px">\u20B9' + Number(b.gst_amount || 0).toLocaleString('en-IN') + '</td>';
     html += '<td style="font-weight:600">\u20B9' + Number(b.total || b.total_amount || b.amount || 0).toLocaleString('en-IN') + '</td>';
     html += '<td><span class="pay-badge ' + payClass + '">' + (b.payment_mode || 'cash') + '</span> <span class="pay-badge ' + statusClass + '" style="font-size:12px;font-weight:700;padding:4px 10px">' + status + '</span></td>';
@@ -7081,11 +7083,13 @@ function formatDate(ts) {
   if (n > 0 && n < 9999999999) n = n * 1000;
   var d = new Date(n);
   if (isNaN(d.getTime())) {
-    /* Try parsing as date string */
     d = new Date(ts);
     if (isNaN(d.getTime())) return '—';
   }
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  var dd = String(d.getDate()).padStart(2, '0');
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var yyyy = d.getFullYear();
+  return dd + '/' + mm + '/' + yyyy;
 }
 
 function showToast(message, type) {
