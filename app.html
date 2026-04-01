@@ -5882,10 +5882,12 @@ function printBillReceipt() {
 function printBillHTML(bill) {
   var items = bill.items || [];
   if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
-  var hospName = appState.hospitalName || appState.hospital_name || 'Hospital';
-  var hospAddr = appState.hospitalAddress || '';
-  var hospPhone = appState.hospitalPhone || '';
-  var hospGstin = appState.hospitalGstin || '';
+  var hosp = appState.hospital || {};
+  var loginD = appState.loginData || {};
+  var hospName = hosp.name || loginD.hospital_name || 'Hospital';
+  var hospAddr = [hosp.address, hosp.city, hosp.state, hosp.pincode].filter(Boolean).join(', ') || '';
+  var hospPhone = hosp.phone || loginD.phone || '';
+  var hospGstin = hosp.gstin || '';
   var txnRef = bill.transaction_ref || '';
   if (!txnRef && bill.notes) {
     var txnMatch = (bill.notes || '').match(/Txn:\s*(\S+)/);
@@ -5956,9 +5958,13 @@ function printBillHTML(bill) {
   h += '</body></html>';
 
   var w = window.open('', '_blank', 'width=420,height=700');
+  if (!w || w.closed) {
+    alert('Please allow popups for this site to auto-print receipts.\nGo to browser settings > Site permissions > Pop-ups > Allow.');
+    return;
+  }
   w.document.write(h);
   w.document.close();
-  setTimeout(function() { w.print(); }, 400);
+  setTimeout(function() { w.print(); }, 500);
 }
 
 /* ── Payment badge helpers ────────────────────────────────────── */
@@ -6152,7 +6158,7 @@ function loadMonthlyCollection() {
 
 function printDailyReport() {
   var date = document.getElementById('colDailyDate').value;
-  var hospName = appState.hospitalName || appState.hospital_name || 'Hospital';
+  var hospName = (appState.hospital || {}).name || (appState.loginData || {}).hospital_name || 'Hospital';
   var bills = colDailyBills;
   var totalAmt = 0;
   for (var i = 0; i < bills.length; i++) totalAmt += Number(bills[i].total || bills[i].total_amount || 0);
