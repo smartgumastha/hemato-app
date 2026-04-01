@@ -5697,30 +5697,29 @@ function saveBill() {
   var saveBtn = document.querySelector('#billPOSView .btn-primary');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
 
-  /* Capture print data before POS view gets cleared */
-  var printData = {
-    bill_number: 'SAVING...',
-    created_at: Date.now(),
-    patient_name: patName,
-    patient_uhid: billPatientData ? (billPatientData.uhid || billPatientData.mrn || '') : '',
-    items: body.items,
-    subtotal: subtotal,
-    discount: discount,
-    gst_amount: totalGST,
-    total: total,
-    paid: paid,
-    balance: Math.max(0, total - paid),
-    payment_mode: billPayMode,
-    payment_status: payStatus,
-    transaction_ref: txnRef,
-    notes: notesVal
-  };
-
   api.post(api.h('/bills'), body)
     .then(function(data) {
       var bill = data.bill || data;
       showToast('Bill saved! ' + (bill.bill_number || ''), 'success');
-      printData.bill_number = bill.bill_number || bill.id || '';
+      var printData = Object.assign({}, bill);
+      if (!printData.items || (typeof printData.items === 'string' && printData.items === '[]')) {
+        printData.items = billItems.map(function(it) { return { desc: it.desc, qty: it.qty, rate: it.rate, gst_pct: it.gstPct }; });
+      }
+      if (!printData.subtotal) {
+        var pSub = 0; for (var pi = 0; pi < billItems.length; pi++) pSub += billItems[pi].qty * billItems[pi].rate;
+        printData.subtotal = pSub;
+      }
+      if (!printData.patient_name && billPatientData) {
+        printData.patient_name = ((billPatientData.first_name || '') + ' ' + (billPatientData.last_name || '')).trim();
+        printData.patient_uhid = billPatientData.uhid || '';
+      }
+      if (!printData.total && !printData.total_amount) {
+        var tEl = document.getElementById('billTotal');
+        printData.total = parseFloat((tEl.textContent || '0').replace(/[^\d.]/g, '')) || 0;
+      }
+      printData.payment_mode = billPayMode;
+      printData.paid = Number(document.getElementById('billAmountPaid').value) || 0;
+      printData.balance = Math.max(0, (printData.total || printData.total_amount || 0) - printData.paid);
       printBillHTML(printData);
       closeBillPOS();
       loadBills();
