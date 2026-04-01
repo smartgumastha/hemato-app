@@ -3014,7 +3014,8 @@ function loadApp() {
       console.log('Hospital data:', JSON.stringify(hospitalData));
 
       appState.user = userData.user || userData;
-      appState.hospital = hospitalData.hospital || hospitalData.settings || hospitalData;
+      appState.hospital = hospitalData.hospital || hospitalData;
+      /* Do NOT use hospitalData.settings here — that's the JSONB sub-object, not the hospital record */
 
       /* Merge settings JSONB into appState.hospital for easy access */
       if (appState.hospital && appState.hospital.settings && typeof appState.hospital.settings === 'object') {
@@ -7275,7 +7276,7 @@ function saveSettings() {
     bill_footer: document.getElementById('settingsBillFooter').value.trim(),
     bill_terms: document.getElementById('settingsBillTerms').value.trim(),
   };
-  if (hospitalLogoBase64) body.logo_url = hospitalLogoBase64;
+  body.logo_url = hospitalLogoBase64 || '';
 
   api.put(api.h('/settings'), body)
     .then(function() {
