@@ -574,6 +574,17 @@ body {
   border-radius: var(--mw-radius-lg);
   padding: 24px;
 }
+/* Settings tab buttons */
+.stab{background:#f3f4f6;color:#374151;border-radius:20px;padding:6px 16px;font-size:13px;font-weight:600;border:none;cursor:pointer;margin-right:8px;font-family:var(--mw-font);transition:all .15s}
+.stab:hover{background:#e5e7eb}
+.stab.active{background:#16a34a;color:#fff}
+/* Toggle switch */
+.tog{position:relative;display:inline-block;width:40px;height:22px;cursor:pointer;margin-top:4px}
+.tog input{opacity:0;width:0;height:0}
+.tog-slider{position:absolute;inset:0;background:#CBD5E1;border-radius:22px;transition:.2s}
+.tog-slider::before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.tog input:checked+.tog-slider{background:#16a34a}
+.tog input:checked+.tog-slider::before{transform:translateX(18px)}
 .settings-card-title {
   font-family: var(--mw-font-display);
   font-size: 15px;
@@ -1666,130 +1677,171 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
       </div>
 
       <div class="screen" id="screenSettings">
-        <div class="settings-grid">
-          <div class="settings-card">
-            <div class="settings-card-title">Hospital Details</div>
+        <!-- Settings Tab Bar -->
+        <div style="overflow-x:auto;white-space:nowrap;padding:8px 0;margin-bottom:20px">
+          <button class="stab active" id="settingsTabBtn_general" onclick="switchSettingsTab('general')">General</button>
+          <button class="stab" id="settingsTabBtn_billing" onclick="switchSettingsTab('billing')">Billing</button>
+          <button class="stab" id="settingsTabBtn_emr" onclick="switchSettingsTab('emr')">EMR</button>
+          <button class="stab" id="settingsTabBtn_pharmacy" onclick="switchSettingsTab('pharmacy')">Pharmacy</button>
+          <button class="stab" id="settingsTabBtn_lis" onclick="switchSettingsTab('lis')">LIS</button>
+          <button class="stab" id="settingsTabBtn_physio" onclick="switchSettingsTab('physio')">Physio</button>
+          <button class="stab" id="settingsTabBtn_presence" onclick="switchSettingsTab('presence')">Presence</button>
+        </div>
 
-            <!-- Logo Upload -->
-            <div class="form-group">
-              <label>Hospital Logo</label>
-              <div id="logoPreview" style="margin-bottom:8px">
-                <img id="hospitalLogoImg" src="" alt="Logo" style="max-height:60px;max-width:200px;display:none;border-radius:6px;border:1px solid var(--mw-border)">
-                <div id="logoPlaceholder" style="width:200px;height:60px;border:2px dashed var(--mw-border);border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--mw-text-3);font-size:12px;cursor:pointer" onclick="document.getElementById('logoUpload').click()">
-                  &#128247; Upload your hospital logo
+        <!-- ═══ TAB: General ═══ -->
+        <div id="settingsTab_general">
+          <div class="settings-grid">
+            <div class="settings-card">
+              <div class="settings-card-title">Hospital Details</div>
+              <div class="form-group">
+                <label>Hospital Logo</label>
+                <div id="logoPreview" style="margin-bottom:8px">
+                  <img id="hospitalLogoImg" src="" alt="Logo" style="max-height:60px;max-width:200px;display:none;border-radius:6px;border:1px solid var(--mw-border)">
+                  <div id="logoPlaceholder" style="width:200px;height:60px;border:2px dashed var(--mw-border);border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--mw-text-3);font-size:12px;cursor:pointer" onclick="document.getElementById('logoUpload').click()">&#128247; Upload your hospital logo</div>
+                </div>
+                <input type="file" id="logoUpload" accept="image/png,image/jpeg" style="display:none" onchange="handleLogoUpload(this)">
+                <div style="display:flex;gap:8px;align-items:center">
+                  <button class="btn btn-outline btn-sm" type="button" onclick="document.getElementById('logoUpload').click()">Upload Logo</button>
+                  <a href="javascript:void(0)" id="removeLogoLink" onclick="removeLogo()" style="font-size:12px;color:var(--mw-danger);display:none">Remove Logo</a>
                 </div>
               </div>
-              <input type="file" id="logoUpload" accept="image/png,image/jpeg" style="display:none" onchange="handleLogoUpload(this)">
-              <div style="display:flex;gap:8px;align-items:center">
-                <button class="btn btn-outline btn-sm" type="button" onclick="document.getElementById('logoUpload').click()">Upload Logo</button>
-                <a href="javascript:void(0)" id="removeLogoLink" onclick="removeLogo()" style="font-size:12px;color:var(--mw-danger);display:none">Remove Logo</a>
+              <div class="form-group"><label>Hospital Name</label><input type="text" id="settingsHospitalName"></div>
+              <div class="form-group"><label>Tagline</label><input type="text" id="settingsTagline" placeholder="Your Health, Our Priority"></div>
+              <div class="form-group"><label>Hospital Type</label>
+                <select id="settingsHospitalType"><option value="">Select Type</option><option value="clinic">Clinic</option><option value="hospital">Hospital</option><option value="diagnostic_center">Diagnostic Center</option><option value="pharmacy">Pharmacy</option><option value="multi_specialty">Multi-Specialty</option><option value="physiotherapy">Physiotherapy Center</option><option value="dental">Dental Clinic</option><option value="eye_clinic">Eye Clinic</option><option value="nursing_home">Nursing Home</option></select>
               </div>
+              <div class="form-group"><label>Address</label><input type="text" id="settingsAddress"></div>
+              <div class="form-group"><label>City</label><input type="text" id="settingsCity"></div>
+              <div class="form-group"><label>State</label><input type="text" id="settingsState"></div>
+              <div class="form-group"><label>Pincode</label><input type="text" id="settingsPincode"></div>
+              <div class="form-group"><label>Phone</label><input type="text" id="settingsPhone"></div>
+              <div class="form-group"><label>Email</label><input type="email" id="settingsEmail"></div>
+              <button class="btn btn-primary" onclick="saveSettings()">Save Details</button>
             </div>
-
-            <div class="form-group">
-              <label>Hospital Name</label>
-              <input type="text" id="settingsHospitalName">
+            <div class="settings-card">
+              <div class="settings-card-title">Letterhead &amp; Compliance</div>
+              <div class="form-group"><label>UHID Prefix</label><input type="text" id="settingsUhidPrefix" placeholder="e.g. SGH, VH, MWH" maxlength="10" style="text-transform:uppercase"><div style="font-size:11px;color:var(--mw-text-3);margin-top:4px">Patient IDs: PREFIX-YY-0001</div></div>
+              <div class="form-group"><label>GSTIN</label><input type="text" id="settingsGstin" placeholder="22AAAAA0000A1Z5"></div>
+              <div class="form-group"><label>Registration Number</label><input type="text" id="settingsRegNumber"></div>
+              <div class="form-group"><label>Drug Licence Number</label><input type="text" id="settingsDrugLicence"></div>
+              <div class="form-group"><label>Bill Footer Text</label><input type="text" id="settingsBillFooter" placeholder="Thank you for visiting..."></div>
+              <div class="form-group"><label>Bill Terms</label><input type="text" id="settingsBillTerms" placeholder="Goods once sold..."></div>
+              <button class="btn btn-primary" onclick="saveSettings()">Save Letterhead</button>
             </div>
-            <div class="form-group">
-              <label>Tagline</label>
-              <input type="text" id="settingsTagline" placeholder="Your Health, Our Priority">
-            </div>
-            <div class="form-group">
-              <label>Hospital Type</label>
-              <select id="settingsHospitalType">
-                <option value="">Select Type</option>
-                <option value="clinic">Clinic</option>
-                <option value="hospital">Hospital</option>
-                <option value="diagnostic_center">Diagnostic Center</option>
-                <option value="pharmacy">Pharmacy</option>
-                <option value="multi_specialty">Multi-Specialty</option>
-                <option value="physiotherapy">Physiotherapy Center</option>
-                <option value="dental">Dental Clinic</option>
-                <option value="eye_clinic">Eye Clinic</option>
-                <option value="nursing_home">Nursing Home</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Address</label>
-              <input type="text" id="settingsAddress">
-            </div>
-            <div class="form-group">
-              <label>City</label>
-              <input type="text" id="settingsCity">
-            </div>
-            <div class="form-group">
-              <label>State</label>
-              <input type="text" id="settingsState">
-            </div>
-            <div class="form-group">
-              <label>Pincode</label>
-              <input type="text" id="settingsPincode">
-            </div>
-            <div class="form-group">
-              <label>Phone</label>
-              <input type="text" id="settingsPhone">
-            </div>
-            <div class="form-group">
-              <label>Email</label>
-              <input type="email" id="settingsEmail">
-            </div>
-            <button class="btn btn-primary" onclick="saveSettings()">Save Details</button>
           </div>
-
-          <div class="settings-card">
-            <div class="settings-card-title">Letterhead & Compliance</div>
-            <div class="form-group">
-              <label>UHID Prefix</label>
-              <input type="text" id="settingsUhidPrefix" placeholder="e.g. SGH, VH, MWH" maxlength="10" style="text-transform:uppercase">
-              <div style="font-size:11px;color:var(--mw-text-3);margin-top:4px">Patient IDs will be: PREFIX-YY-0001 (e.g. SGH-26-0001)</div>
+          <div style="margin-top:20px">
+            <div class="settings-card">
+              <div class="settings-card-title">Enabled Modules</div>
+              <div id="settingsModuleList" style="display:flex;flex-wrap:wrap;gap:8px"></div>
             </div>
-            <div class="form-group">
-              <label>GSTIN</label>
-              <input type="text" id="settingsGstin" placeholder="22AAAAA0000A1Z5">
-            </div>
-            <div class="form-group">
-              <label>Registration Number</label>
-              <input type="text" id="settingsRegNumber">
-            </div>
-            <div class="form-group">
-              <label>Drug Licence Number</label>
-              <input type="text" id="settingsDrugLicence">
-            </div>
-            <div class="form-group">
-              <label>Bill Footer Text</label>
-              <input type="text" id="settingsBillFooter" placeholder="Thank you for visiting...">
-            </div>
-            <div class="form-group">
-              <label>Bill Terms</label>
-              <input type="text" id="settingsBillTerms" placeholder="Goods once sold...">
-            </div>
-            <button class="btn btn-primary" onclick="saveSettings()">Save Letterhead</button>
           </div>
-        </div>
-
-        <div style="margin-top:20px">
-          <div class="settings-card">
-            <div class="settings-card-title">Enabled Modules</div>
-            <div id="settingsModuleList" style="display:flex;flex-wrap:wrap;gap:8px">
-              <!-- Populated dynamically -->
+          <div style="margin-top:20px">
+            <div class="settings-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--mw-border)">
+                <div style="font-family:var(--mw-font-display);font-size:15px;font-weight:600">Roles &amp; Permissions</div>
+                <button class="btn btn-primary btn-sm" onclick="openRoleModal()">+ Create Role</button>
+              </div>
+              <table class="mw-table" id="rolesTable"><thead><tr><th>Role Name</th><th>Description</th><th>Modules</th><th>Actions</th></tr></thead>
+                <tbody id="rolesTableBody"><tr><td colspan="4" class="empty-state" style="padding:40px"><div class="empty-state-title">No custom roles</div></td></tr></tbody>
+              </table>
             </div>
           </div>
         </div>
 
-        <div style="margin-top:20px">
+        <!-- ═══ TAB: Billing ═══ -->
+        <div id="settingsTab_billing" style="display:none">
           <div class="settings-card">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--mw-border)">
-              <div style="font-family:var(--mw-font-display);font-size:15px;font-weight:600">Roles &amp; Permissions</div>
-              <button class="btn btn-primary btn-sm" onclick="openRoleModal()">+ Create Role</button>
+            <div class="settings-card-title">Billing Settings</div>
+            <div class="form-group"><label>Bill Prefix</label><input type="text" id="setBillPrefix" placeholder="SGH" maxlength="10" style="text-transform:uppercase"></div>
+            <div class="form-group"><label>Auto-print after save</label><label class="tog"><input type="checkbox" id="setAutoPrint" checked><span class="tog-slider"></span></label></div>
+            <div class="form-group"><label>Default Payment Mode</label>
+              <select id="setDefaultPayment"><option value="cash">Cash</option><option value="upi">UPI</option><option value="card">Card</option><option value="insurance">Insurance</option></select>
             </div>
-            <table class="mw-table" id="rolesTable">
-              <thead>
-                <tr><th>Role Name</th><th>Description</th><th>Modules</th><th>Actions</th></tr>
-              </thead>
-              <tbody id="rolesTableBody">
-                <tr><td colspan="4" class="empty-state" style="padding:40px"><div class="empty-state-title">No custom roles</div></td></tr>
-              </tbody>
-            </table>
+            <div class="form-group"><label>GST Rate %</label><input type="number" id="setGstRate" value="18" min="0" max="28"></div>
+            <div class="form-group"><label>Show Discount field</label><label class="tog"><input type="checkbox" id="setShowDiscount" checked><span class="tog-slider"></span></label></div>
+            <div class="form-group"><label>Print Format</label>
+              <select id="setPrintFormat"><option value="a5">A5</option><option value="thermal">Thermal 80mm</option></select>
+            </div>
+            <div class="form-group"><label>Bill Footer Text</label><textarea id="setBillFooterText" rows="2" placeholder="Thank you for visiting!" style="width:100%;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:8px;font-family:var(--mw-font);font-size:13px;resize:none"></textarea></div>
+            <div class="form-group"><label>Bill Terms</label><textarea id="setBillTermsText" rows="2" placeholder="All fees are non-refundable" style="width:100%;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:8px;font-family:var(--mw-font);font-size:13px;resize:none"></textarea></div>
+            <button class="btn btn-primary" onclick="saveTabSettings('billing')">Save Billing Settings</button>
+          </div>
+        </div>
+
+        <!-- ═══ TAB: EMR ═══ -->
+        <div id="settingsTab_emr" style="display:none">
+          <div class="settings-card">
+            <div class="settings-card-title">EMR Settings</div>
+            <div class="form-group"><label>Default Consultation Duration</label>
+              <select id="setConsultDuration"><option value="10">10 mins</option><option value="15" selected>15 mins</option><option value="20">20 mins</option><option value="30">30 mins</option></select>
+            </div>
+            <div class="form-group"><label>Auto-save notes</label><label class="tog"><input type="checkbox" id="setAutoSaveNotes" checked><span class="tog-slider"></span></label></div>
+            <div class="form-group"><label>Show Vitals Section</label><label class="tog"><input type="checkbox" id="setShowVitals" checked><span class="tog-slider"></span></label></div>
+            <div class="form-group"><label>Prescription Language</label>
+              <select id="setPrescLang"><option value="english">English</option><option value="hindi">Hindi</option><option value="telugu">Telugu</option><option value="tamil">Tamil</option><option value="kannada">Kannada</option><option value="malayalam">Malayalam</option><option value="bengali">Bengali</option><option value="marathi">Marathi</option><option value="gujarati">Gujarati</option></select>
+            </div>
+            <div class="form-group"><label>Follow-up Reminder Days</label><input type="number" id="setFollowupDays" value="7" min="1" max="90"></div>
+            <div class="form-group"><label>Prescription Footer</label><textarea id="setPrescFooter" rows="2" placeholder="Get well soon..." style="width:100%;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:8px;font-family:var(--mw-font);font-size:13px;resize:none"></textarea></div>
+            <button class="btn btn-primary" onclick="saveTabSettings('emr')">Save EMR Settings</button>
+          </div>
+        </div>
+
+        <!-- ═══ TAB: Pharmacy ═══ -->
+        <div id="settingsTab_pharmacy" style="display:none">
+          <div class="settings-card">
+            <div class="settings-card-title">Pharmacy Settings</div>
+            <div class="form-group"><label>GST on medicines</label><label class="tog"><input type="checkbox" id="setPharmGst" checked><span class="tog-slider"></span></label></div>
+            <div class="form-group"><label>Default GST %</label><input type="number" id="setPharmGstRate" value="12" min="0" max="28"></div>
+            <div class="form-group"><label>Low Stock Alert (units)</label><input type="number" id="setLowStock" value="10" min="1"></div>
+            <div class="form-group"><label>Show Generic Name</label><label class="tog"><input type="checkbox" id="setShowGeneric" checked><span class="tog-slider"></span></label></div>
+            <div class="form-group"><label>Show Batch / Expiry</label><label class="tog"><input type="checkbox" id="setShowBatch" checked><span class="tog-slider"></span></label></div>
+            <div class="form-group"><label>Receipt Footer</label><textarea id="setPharmFooter" rows="2" placeholder="Thank you for your purchase" style="width:100%;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:8px;font-family:var(--mw-font);font-size:13px;resize:none"></textarea></div>
+            <button class="btn btn-primary" onclick="saveTabSettings('pharmacy')">Save Pharmacy Settings</button>
+          </div>
+        </div>
+
+        <!-- ═══ TAB: LIS ═══ -->
+        <div id="settingsTab_lis" style="display:none">
+          <div class="settings-card">
+            <div class="settings-card-title">Laboratory Settings</div>
+            <div class="form-group"><label>Report Header</label><input type="text" id="setLabHeader" placeholder="Your Lab Name — Diagnostic Center"></div>
+            <div class="form-group"><label>Pathologist Name</label><input type="text" id="setPathName" placeholder="Dr. Name, MD Pathology"></div>
+            <div class="form-group"><label>Pathologist Reg No</label><input type="text" id="setPathReg" placeholder="MCI/State Reg No"></div>
+            <div class="form-group"><label>NABL Accreditation No</label><input type="text" id="setNabl" placeholder="Optional"></div>
+            <div class="form-group"><label>Auto-approve normal results</label><label class="tog"><input type="checkbox" id="setAutoApprove"><span class="tog-slider"></span></label></div>
+            <div class="form-group"><label>Show Reference Ranges</label><label class="tog"><input type="checkbox" id="setShowRanges" checked><span class="tog-slider"></span></label></div>
+            <div class="form-group"><label>Report Footer</label><textarea id="setLabFooter" rows="2" placeholder="This report is electronically generated" style="width:100%;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:8px;font-family:var(--mw-font);font-size:13px;resize:none"></textarea></div>
+            <button class="btn btn-primary" onclick="saveTabSettings('lis')">Save LIS Settings</button>
+          </div>
+        </div>
+
+        <!-- ═══ TAB: Physio ═══ -->
+        <div id="settingsTab_physio" style="display:none">
+          <div class="settings-card">
+            <div class="settings-card-title">Physiotherapy Settings</div>
+            <div class="form-group"><label>Default Session Duration</label>
+              <select id="setPhysioDuration"><option value="30">30 mins</option><option value="45" selected>45 mins</option><option value="60">60 mins</option><option value="90">90 mins</option></select>
+            </div>
+            <div class="form-group"><label>Show Exercise Library</label><label class="tog"><input type="checkbox" id="setShowExercises" checked><span class="tog-slider"></span></label></div>
+            <div class="form-group"><label>Treatment Plan Template</label>
+              <select id="setPhysioTemplate"><option value="orthopedic">Orthopedic</option><option value="neuro">Neuro</option><option value="cardio">Cardio</option><option value="sports">Sports</option><option value="geriatric">Geriatric</option><option value="pediatric">Pediatric</option></select>
+            </div>
+            <div class="form-group"><label>Session Notes Template</label><textarea id="setPhysioNotes" rows="2" placeholder="Session notes template..." style="width:100%;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:8px;font-family:var(--mw-font);font-size:13px;resize:none"></textarea></div>
+            <div class="form-group"><label>Home Exercise Program Footer</label><textarea id="setPhysioFooter" rows="2" placeholder="Continue exercises as advised" style="width:100%;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:8px;font-family:var(--mw-font);font-size:13px;resize:none"></textarea></div>
+            <div class="form-group"><label>Auto-schedule follow-up</label><label class="tog"><input type="checkbox" id="setPhysioFollowup"><span class="tog-slider"></span></label></div>
+            <div class="form-group"><label>Follow-up interval (days)</label><input type="number" id="setPhysioInterval" value="3" min="1" max="30"></div>
+            <button class="btn btn-primary" onclick="saveTabSettings('physio')">Save Physio Settings</button>
+          </div>
+        </div>
+
+        <!-- ═══ TAB: Presence ═══ -->
+        <div id="settingsTab_presence" style="display:none">
+          <div class="settings-card" style="text-align:center;padding:40px">
+            <div style="width:64px;height:64px;background:#D1FAE5;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;font-weight:800;color:#059669">M</div>
+            <div style="font-size:18px;font-weight:700;color:var(--mw-text-1);margin-bottom:6px">MediHost Online Presence</div>
+            <div style="font-size:14px;color:var(--mw-text-2);margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto">Manage your online presence, website, and social profiles on MediHost</div>
+            <div id="presenceStatus" style="margin-bottom:20px"></div>
+            <a href="https://medihost.in/dashboard" target="_blank" class="btn btn-primary" style="padding:12px 28px;font-size:15px;display:inline-flex">Open MediHost Dashboard &#8594;</a>
           </div>
         </div>
       </div>
@@ -6943,6 +6995,132 @@ function loadSettings() {
   } else {
     removeLogo();
   }
+  /* Billing tab */
+  var s = h.settings || h;
+  document.getElementById('setBillPrefix').value = s.bill_prefix || h.uhid_prefix || '';
+  document.getElementById('setAutoPrint').checked = s.auto_print !== false;
+  document.getElementById('setDefaultPayment').value = s.default_payment || 'cash';
+  document.getElementById('setGstRate').value = s.gst_rate || 18;
+  document.getElementById('setShowDiscount').checked = s.show_discount !== false;
+  document.getElementById('setPrintFormat').value = s.print_format || 'a5';
+  document.getElementById('setBillFooterText').value = s.bill_footer || h.bill_footer || '';
+  document.getElementById('setBillTermsText').value = s.bill_terms_text || h.bill_terms || '';
+  /* EMR tab */
+  document.getElementById('setConsultDuration').value = s.consult_duration || '15';
+  document.getElementById('setAutoSaveNotes').checked = s.auto_save_notes !== false;
+  document.getElementById('setShowVitals').checked = s.show_vitals !== false;
+  document.getElementById('setPrescLang').value = s.presc_lang || 'english';
+  document.getElementById('setFollowupDays').value = s.followup_days || 7;
+  document.getElementById('setPrescFooter').value = s.presc_footer || '';
+  /* Pharmacy tab */
+  document.getElementById('setPharmGst').checked = s.pharm_gst !== false;
+  document.getElementById('setPharmGstRate').value = s.pharm_gst_rate || 12;
+  document.getElementById('setLowStock').value = s.low_stock || 10;
+  document.getElementById('setShowGeneric').checked = s.show_generic !== false;
+  document.getElementById('setShowBatch').checked = s.show_batch !== false;
+  document.getElementById('setPharmFooter').value = s.pharm_footer || '';
+  /* LIS tab */
+  document.getElementById('setLabHeader').value = s.lab_header || '';
+  document.getElementById('setPathName').value = s.pathologist_name || '';
+  document.getElementById('setPathReg').value = s.pathologist_reg || '';
+  document.getElementById('setNabl').value = s.nabl_no || '';
+  document.getElementById('setAutoApprove').checked = !!s.auto_approve;
+  document.getElementById('setShowRanges').checked = s.show_ranges !== false;
+  document.getElementById('setLabFooter').value = s.lab_footer || '';
+  /* Physio tab */
+  document.getElementById('setPhysioDuration').value = s.physio_duration || '45';
+  document.getElementById('setShowExercises').checked = s.show_exercises !== false;
+  document.getElementById('setPhysioTemplate').value = s.physio_template || 'orthopedic';
+  document.getElementById('setPhysioNotes').value = s.physio_notes || '';
+  document.getElementById('setPhysioFooter').value = s.physio_footer || '';
+  document.getElementById('setPhysioFollowup').checked = !!s.physio_followup;
+  document.getElementById('setPhysioInterval').value = s.physio_interval || 3;
+  /* Presence tab */
+  var presEl = document.getElementById('presenceStatus');
+  if (presEl) {
+    if (h.medihost_slug) {
+      presEl.innerHTML = '<span style="display:inline-block;background:#D1FAE5;color:#065F46;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:700">&#10003; Connected</span><div style="font-size:13px;color:var(--mw-text-2);margin-top:6px">Profile: <a href="https://medihost.in/profile?slug=' + h.medihost_slug + '" target="_blank" style="color:#16a34a;font-weight:600">medihost.in/' + h.medihost_slug + '</a></div>';
+    } else {
+      presEl.innerHTML = '<span style="display:inline-block;background:#F3F4F6;color:#6B7280;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:600">Not Connected</span><div style="font-size:13px;color:var(--mw-text-3);margin-top:6px">Set up your online presence on MediHost</div>';
+    }
+  }
+}
+
+var currentSettingsTab = 'general';
+
+function switchSettingsTab(tab) {
+  var tabs = ['general','billing','emr','pharmacy','lis','physio','presence'];
+  for (var i = 0; i < tabs.length; i++) {
+    var el = document.getElementById('settingsTab_' + tabs[i]);
+    var btn = document.getElementById('settingsTabBtn_' + tabs[i]);
+    if (el) el.style.display = tabs[i] === tab ? '' : 'none';
+    if (btn) btn.classList.toggle('active', tabs[i] === tab);
+  }
+  currentSettingsTab = tab;
+}
+
+function saveTabSettings(tab) {
+  var body = {};
+  if (tab === 'billing') {
+    body = {
+      bill_prefix: document.getElementById('setBillPrefix').value.trim().toUpperCase(),
+      auto_print: document.getElementById('setAutoPrint').checked,
+      default_payment: document.getElementById('setDefaultPayment').value,
+      gst_rate: Number(document.getElementById('setGstRate').value) || 18,
+      show_discount: document.getElementById('setShowDiscount').checked,
+      print_format: document.getElementById('setPrintFormat').value,
+      bill_footer: document.getElementById('setBillFooterText').value.trim(),
+      bill_terms_text: document.getElementById('setBillTermsText').value.trim()
+    };
+  } else if (tab === 'emr') {
+    body = {
+      consult_duration: document.getElementById('setConsultDuration').value,
+      auto_save_notes: document.getElementById('setAutoSaveNotes').checked,
+      show_vitals: document.getElementById('setShowVitals').checked,
+      presc_lang: document.getElementById('setPrescLang').value,
+      followup_days: Number(document.getElementById('setFollowupDays').value) || 7,
+      presc_footer: document.getElementById('setPrescFooter').value.trim()
+    };
+  } else if (tab === 'pharmacy') {
+    body = {
+      pharm_gst: document.getElementById('setPharmGst').checked,
+      pharm_gst_rate: Number(document.getElementById('setPharmGstRate').value) || 12,
+      low_stock: Number(document.getElementById('setLowStock').value) || 10,
+      show_generic: document.getElementById('setShowGeneric').checked,
+      show_batch: document.getElementById('setShowBatch').checked,
+      pharm_footer: document.getElementById('setPharmFooter').value.trim()
+    };
+  } else if (tab === 'lis') {
+    body = {
+      lab_header: document.getElementById('setLabHeader').value.trim(),
+      pathologist_name: document.getElementById('setPathName').value.trim(),
+      pathologist_reg: document.getElementById('setPathReg').value.trim(),
+      nabl_no: document.getElementById('setNabl').value.trim(),
+      auto_approve: document.getElementById('setAutoApprove').checked,
+      show_ranges: document.getElementById('setShowRanges').checked,
+      lab_footer: document.getElementById('setLabFooter').value.trim()
+    };
+  } else if (tab === 'physio') {
+    body = {
+      physio_duration: document.getElementById('setPhysioDuration').value,
+      show_exercises: document.getElementById('setShowExercises').checked,
+      physio_template: document.getElementById('setPhysioTemplate').value,
+      physio_notes: document.getElementById('setPhysioNotes').value.trim(),
+      physio_footer: document.getElementById('setPhysioFooter').value.trim(),
+      physio_followup: document.getElementById('setPhysioFollowup').checked,
+      physio_interval: Number(document.getElementById('setPhysioInterval').value) || 3
+    };
+  }
+
+  api.put(api.h('/settings'), body)
+    .then(function() {
+      showToast(tab.charAt(0).toUpperCase() + tab.slice(1) + ' settings saved', 'success');
+      appState.hospital = Object.assign(appState.hospital || {}, body);
+      try { localStorage.setItem('mw_hospital_settings', JSON.stringify(appState.hospital)); } catch(e) {}
+    })
+    .catch(function(err) {
+      showToast('Failed to save: ' + err.message, 'error');
+    });
 }
 
 function saveSettings() {
