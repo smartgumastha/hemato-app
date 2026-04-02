@@ -2940,7 +2940,7 @@ function doLogout() {
   localStorage.removeItem('mw_token');
   localStorage.removeItem('mw_hospital_id');
   document.getElementById('appWrapper').classList.remove('active');
-  showAuthPanel('authLogin');
+  window.location.href = 'https://medihost.in/login.html?product=hms';
 }
 
 /* OTP input auto-advance */
@@ -7610,6 +7610,10 @@ setInterval(function() {
       } catch(e) { console.warn('Failed to parse login data:', e); }
     }
     loadApp();
+  } else {
+    // No session — redirect to MediHost universal login
+    window.location.href = 'https://medihost.in/login.html?product=hms';
+    return;
   }
 })();
 
