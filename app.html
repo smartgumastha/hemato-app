@@ -9,6 +9,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700&family=Clash+Display:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+/* Hide body until auth check completes — prevents flash of login screen */
+body { opacity: 0; transition: opacity 0.3s; }
+body.loaded { opacity: 1; }
 /* ============================================================
    MEDIWHATS CORE — DESIGN SYSTEM
    Cabinet Grotesk (body) + Clash Display (headings) + JetBrains Mono (data)
@@ -2971,6 +2974,7 @@ function loadApp() {
   var panels = document.querySelectorAll('.auth-wrapper');
   for (var i = 0; i < panels.length; i++) panels[i].classList.remove('active');
   document.getElementById('appWrapper').classList.add('active');
+  document.body.classList.add('loaded');
 
   /* If hospitalId is missing or 'null', we can't proceed */
   if (!appState.hospitalId || appState.hospitalId === 'null' || appState.hospitalId === 'undefined') {
