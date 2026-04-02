@@ -7575,13 +7575,23 @@ setInterval(function() {
   var rpLoginData = urlParams.get('rp_login_data');
   var rpFrom = urlParams.get('rp_from');
 
+  // MediHost SSO handoff (cross-domain via URL params)
+  var mwToken = urlParams.get('mw_token');
+  var mwHospitalId = urlParams.get('mw_hospital_id');
+  var mwLoginData = urlParams.get('mw_login_data');
+  if (mwToken && mwHospitalId) {
+    localStorage.setItem('mw_token', mwToken);
+    localStorage.setItem('mw_hospital_id', mwHospitalId);
+    if (mwLoginData) localStorage.setItem('mw_login_data', decodeURIComponent(mwLoginData));
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  // RightPhysio SSO handoff
   if (rpToken && rpHospital) {
-    // Store in mw_ keys so app loads normally
     localStorage.setItem('mw_token', rpToken);
     localStorage.setItem('mw_hospital_id', rpHospital);
     if (rpLoginData) localStorage.setItem('mw_login_data', decodeURIComponent(rpLoginData));
     if (rpFrom) localStorage.setItem('mw_rp_from', rpFrom);
-    // Clean URL without reloading
     window.history.replaceState({}, '', window.location.pathname);
   }
 
