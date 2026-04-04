@@ -13315,19 +13315,49 @@ function plSelectPatient(patientId) {
   document.getElementById('pl_results').style.display = 'none';
   document.getElementById('pl_content').innerHTML = '<div style="padding:24px;text-align:center;color:var(--mw-text-3)">' + t('common.loading') + '</div>';
 
-  api.get(api.h('/ledger/' + patientId)).then(function(d) {
-    var summary = d.summary || {};
-    var entries = d.entries || [];
-    var patient = d.patient || {};
-    var h = '';
+  /* Fetch ledger entries + summary in parallel */
+  var ledgerUrl = api.h('/ledger/' + patientId);
+  var summaryUrl = api.h('/ledger/' + patientId + '/summary');
 
+  Promise.all([
+    api.get(ledgerUrl),
+    api.get(summaryUrl).catch(function() { return {}; })
+  ]).then(function(results) {
+    var d = results[0] || {};
+    var summaryData = results[1] || {};
+    console.log('LEDGER API RESPONSE:', JSON.stringify(d).substring(0, 500));
+    console.log('LEDGER SUMMARY RESPONSE:', JSON.stringify(summaryData).substring(0, 500));
+
+    var entries = d.entries || [];
+    var summary = summaryData || {};
+    /* Compute summary from entries if summary endpoint failed */
+    if (!summary.total_billed && entries.length > 0) {
+      var totalDebits = 0; var totalCredits = 0;
+      for (var s = 0; s < entries.length; s++) {
+        totalDebits += parseFloat(entries[s].debit) || 0;
+        totalCredits += parseFloat(entries[s].credit) || 0;
+      }
+      summary.total_billed = totalDebits;
+      summary.total_paid = totalCredits;
+      summary.outstanding = totalDebits - totalCredits;
+    }
+
+    /* Find patient info from cache */
+    var patient = {};
+    for (var pi = 0; pi < (patientCache || []).length; pi++) {
+      if (String(patientCache[pi].patient_id || patientCache[pi].id) === String(patientId)) {
+        patient = patientCache[pi]; break;
+      }
+    }
+
+    var h = '';
     h += '<div style="margin-bottom:16px;font-family:var(--mw-font-display);font-size:18px;font-weight:700;color:var(--mw-text)">' + (patient.first_name || '') + ' ' + (patient.last_name || '') + ' <span style="font-size:13px;color:var(--mw-text-3);font-weight:400">' + (patient.uhid || patient.mrn || '') + '</span></div>';
 
     h += '<div class="bv2-summary-cards">';
-    h += '<div class="bv2-summary-card" style="border-left:4px solid var(--mw-danger)"><div class="sc-label">' + t('ledger.total_billed') + '</div><div class="sc-value" style="color:var(--mw-danger)">₹' + (parseFloat(summary.total_billed) || 0).toLocaleString('en-IN') + '</div></div>';
-    h += '<div class="bv2-summary-card" style="border-left:4px solid var(--mw-success)"><div class="sc-label">' + t('ledger.total_paid') + '</div><div class="sc-value" style="color:var(--mw-success)">₹' + (parseFloat(summary.total_paid) || 0).toLocaleString('en-IN') + '</div></div>';
-    h += '<div class="bv2-summary-card" style="border-left:4px solid var(--mw-accent)"><div class="sc-label">' + t('ledger.wallet_balance') + '</div><div class="sc-value" style="color:var(--mw-accent)">₹' + (parseFloat(summary.wallet_balance) || 0).toLocaleString('en-IN') + '</div></div>';
-    h += '<div class="bv2-summary-card" style="border-left:4px solid var(--mw-warning)"><div class="sc-label">' + t('ledger.outstanding') + '</div><div class="sc-value" style="color:var(--mw-warning)">₹' + (parseFloat(summary.outstanding) || 0).toLocaleString('en-IN') + '</div></div>';
+    h += '<div class="bv2-summary-card" style="border-left:4px solid var(--mw-danger)"><div class="sc-label">' + t('ledger.total_billed') + '</div><div class="sc-value" style="color:var(--mw-danger)">\u20B9' + (parseFloat(summary.total_billed) || 0).toLocaleString('en-IN') + '</div></div>';
+    h += '<div class="bv2-summary-card" style="border-left:4px solid var(--mw-success)"><div class="sc-label">' + t('ledger.total_paid') + '</div><div class="sc-value" style="color:var(--mw-success)">\u20B9' + (parseFloat(summary.total_paid) || 0).toLocaleString('en-IN') + '</div></div>';
+    h += '<div class="bv2-summary-card" style="border-left:4px solid var(--mw-accent)"><div class="sc-label">' + t('ledger.wallet_balance') + '</div><div class="sc-value" style="color:var(--mw-accent)">\u20B9' + (parseFloat(summary.wallet_balance) || 0).toLocaleString('en-IN') + '</div></div>';
+    h += '<div class="bv2-summary-card" style="border-left:4px solid var(--mw-warning)"><div class="sc-label">' + t('ledger.outstanding') + '</div><div class="sc-value" style="color:var(--mw-warning)">\u20B9' + (parseFloat(summary.outstanding) || 0).toLocaleString('en-IN') + '</div></div>';
     h += '</div>';
 
     var typeBadge = { bill:'background:var(--mw-danger-light);color:var(--mw-danger)', payment:'background:var(--mw-success-light);color:var(--mw-success)', advance:'background:var(--mw-accent-light);color:var(--mw-accent)', wallet:'background:var(--mw-purple-light);color:var(--mw-purple)', refund:'background:#f1f5f9;color:#64748b' };
@@ -13335,29 +13365,43 @@ function plSelectPatient(patientId) {
     h += '<div class="bv2-card"><table class="mw-table"><thead><tr><th>' + t('common.date') + '</th><th>' + t('common.type') + '</th><th>Reference #</th><th style="text-align:right">' + t('common.debit') + '</th><th style="text-align:right">' + t('common.credit') + '</th><th style="text-align:right">' + t('common.balance') + '</th></tr></thead><tbody>';
     for (var i = 0; i < entries.length; i++) {
       var e = entries[i];
-      var badge = typeBadge[e.type] || typeBadge.refund;
-      h += '<tr><td>' + (e.date ? new Date(e.date).toLocaleDateString('en-IN') : '—') + '</td>';
-      h += '<td><span style="display:inline-block;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600;' + badge + '">' + t('ledger.type.' + (e.type || 'bill')) + '</span></td>';
-      h += '<td>' + (e.reference || '—') + '</td>';
-      h += '<td style="text-align:right;color:var(--mw-danger)">' + (e.debit ? '₹' + parseFloat(e.debit).toLocaleString('en-IN') : '') + '</td>';
-      h += '<td style="text-align:right;color:var(--mw-success)">' + (e.credit ? '₹' + parseFloat(e.credit).toLocaleString('en-IN') : '') + '</td>';
+      var eType = e.entry_type || e.type || 'bill';
+      var badge = typeBadge[eType] || typeBadge.refund;
+      var eDate = '\u2014';
+      if (e.created_at || e.date) {
+        var eTs = Number(e.created_at || e.date);
+        if (eTs > 0 && eTs < 9999999999) eTs = eTs * 1000;
+        eDate = eTs > 0 ? new Date(eTs).toLocaleDateString('en-IN') : new Date(e.created_at || e.date).toLocaleDateString('en-IN');
+      }
+      h += '<tr><td>' + eDate + '</td>';
+      h += '<td><span style="display:inline-block;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600;' + badge + '">' + (t('ledger.type.' + eType) || eType) + '</span></td>';
+      h += '<td>' + (e.reference || '\u2014') + '</td>';
+      h += '<td style="text-align:right;color:var(--mw-danger)">' + (e.debit ? '\u20B9' + parseFloat(e.debit).toLocaleString('en-IN') : '') + '</td>';
+      h += '<td style="text-align:right;color:var(--mw-success)">' + (e.credit ? '\u20B9' + parseFloat(e.credit).toLocaleString('en-IN') : '') + '</td>';
       var bal = parseFloat(e.running_balance) || 0;
-      h += '<td style="text-align:right;color:' + (bal >= 0 ? 'var(--mw-success)' : 'var(--mw-danger)') + '">₹' + Math.abs(bal).toLocaleString('en-IN') + '</td></tr>';
+      h += '<td style="text-align:right;color:' + (bal >= 0 ? 'var(--mw-danger)' : 'var(--mw-success)') + '">\u20B9' + Math.abs(bal).toLocaleString('en-IN') + '</td></tr>';
     }
     if (entries.length === 0) h += '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--mw-text-3)">No ledger entries found</td></tr>';
     h += '</tbody></table></div>';
 
-    var outstanding = parseFloat(summary.outstanding) || 0;
+    var outstanding = parseFloat(summary.outstanding || d.closing_balance) || 0;
     h += '<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">';
-    if (outstanding > 0) h += '<button class="btn btn-primary btn-sm" onclick="plReceiveOutstanding(\'' + patientId + '\',' + outstanding + ')">' + t('billing.receive_payment') + ' ₹' + outstanding.toLocaleString('en-IN') + '</button>';
+    if (outstanding > 0) h += '<button class="btn btn-primary btn-sm" onclick="plReceiveOutstanding(\'' + patientId + '\',' + outstanding + ')">' + t('billing.receive_payment') + ' \u20B9' + outstanding.toLocaleString('en-IN') + '</button>';
     h += '<button class="btn btn-sm" style="background:var(--mw-accent);color:#fff;border:none" onclick="showScreen(\'screenAdvanceWallet\')">' + t('billing.advance.add') + '</button>';
     h += '<button class="btn btn-outline btn-sm" onclick="plPrintLedger(\'' + patientId + '\')">' + t('ledger.print') + '</button>';
-    h += '<button class="ab-btn wa" onclick="plWhatsAppLedger(\'' + (patient.phone_number || '') + '\')">' + t('ledger.whatsapp') + '</button>';
+    h += '<button class="ab-btn wa" onclick="plWhatsAppLedger(\'' + (patient.phone || patient.phone_number || '') + '\')">' + t('ledger.whatsapp') + '</button>';
     h += '</div>';
 
     document.getElementById('pl_content').innerHTML = h;
-  }).catch(function() {
-    document.getElementById('pl_content').innerHTML = '<div style="color:var(--mw-danger);padding:16px">Error loading ledger</div>';
+  }).catch(function(err) {
+    console.error('LEDGER LOAD ERROR:', err);
+    var msg = 'Error loading ledger';
+    if (err && typeof err === 'object') {
+      msg += ': ' + (err.message || err.error || JSON.stringify(err).substring(0, 200));
+    } else if (typeof err === 'string') {
+      msg += ': ' + err;
+    }
+    document.getElementById('pl_content').innerHTML = '<div style="color:var(--mw-danger);padding:16px">' + msg + '</div>';
   });
 }
 
@@ -13941,8 +13985,9 @@ var billWalletBalance = 0;
 
 function checkPatientWallet(patientId) {
   if (!patientId) { hideBillWallet(); return; }
-  api.get(api.h('/patients/' + patientId + '/wallet')).then(function(data) {
-    billWalletBalance = parseFloat(data.balance || data.wallet_balance || 0) || 0;
+  api.get(api.h('/wallet/' + patientId)).then(function(data) {
+    var w = data.wallet || data;
+    billWalletBalance = parseFloat(w.balance || w.wallet_balance || data.balance || 0) || 0;
     var ws = document.getElementById('billWalletSection');
     var wb = document.getElementById('billWalletBal');
     if (billWalletBalance > 0 && ws) {
