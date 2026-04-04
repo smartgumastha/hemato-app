@@ -7014,7 +7014,7 @@ function printBillHTML(printData, overrides) {
   if (qrHash) {
     qrImgHtml = '<div style="text-align:center;">' +
       '<img src="https://api.qrserver.com/v1/create-qr-code/?size=' + spec.qrSize + 'x' + spec.qrSize + '&data=' + encodeURIComponent(qrUrl) + '" style="width:' + spec.qrSize + 'px;height:' + spec.qrSize + 'px;border:1px solid #ddd;border-radius:4px;">' +
-      '<div style="font-size:7px;color:#999;margin-top:2px;">Scan to verify</div></div>';
+      '<div style="font-size:7px;color:#555;margin-top:2px;">Scan to verify</div></div>';
   }
 
   /* Items HTML */
@@ -7033,7 +7033,7 @@ function printBillHTML(printData, overrides) {
     itemsHtml += '<tr>' +
       '<td style="padding:' + cellPadding + ';border-bottom:' + cellBorder + ';font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border-right:' + cellBorder + ';' : '') + '">' + (i+1) + '</td>' +
       '<td style="padding:' + cellPadding + ';border-bottom:' + cellBorder + ';font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border-right:' + cellBorder + ';' : '') + '">' + (item.desc || item.description || item.name || '-') + (gstPct > 0 ? ' <small>(' + gstPct + '%)</small>' : '') + '</td>' +
-      (hasHsn ? '<td style="padding:' + cellPadding + ';border-bottom:' + cellBorder + ';font-size:10px;color:#666;' + (isGrid ? 'border-right:' + cellBorder + ';' : '') + '">' + hsn + '</td>' : '') +
+      (hasHsn ? '<td style="padding:' + cellPadding + ';border-bottom:' + cellBorder + ';font-size:10px;color:#333;' + (isGrid ? 'border-right:' + cellBorder + ';' : '') + '">' + hsn + '</td>' : '') +
       '<td style="padding:' + cellPadding + ';border-bottom:' + cellBorder + ';text-align:center;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border-right:' + cellBorder + ';' : '') + '">' + qty + '</td>' +
       '<td style="padding:' + cellPadding + ';border-bottom:' + cellBorder + ';text-align:right;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border-right:' + cellBorder + ';' : '') + '">\u20B9' + Number(rate).toLocaleString('en-IN') + '</td>' +
       '<td style="padding:' + cellPadding + ';border-bottom:' + cellBorder + ';text-align:right;font-size:' + spec.fontSize + 'px;">\u20B9' + Number(amt).toLocaleString('en-IN') + '</td>' +
@@ -7054,44 +7054,51 @@ function printBillHTML(printData, overrides) {
 
   if (isThermal) {
     /* ===== THERMAL/COMPACT STYLE ===== */
-    html += '<div style="text-align:center;font-size:' + spec.titleSize + 'px;font-weight:700;">' + hospitalName + '</div>';
-    if (addressStr) html += '<div style="text-align:center;font-size:9px;color:#666;">' + addressStr + '</div>';
-    if (h.phone) html += '<div style="text-align:center;font-size:9px;color:#666;">Ph: ' + h.phone + '</div>';
-    html += '<div style="text-align:center;font-size:9px;color:#666;margin-bottom:6px;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
+    html += '<div style="text-align:center;font-size:' + spec.titleSize + 'px;font-weight:800;">' + hospitalName + '</div>';
+    if (addressStr) html += '<div style="text-align:center;font-size:9px;color:#333;">' + addressStr + '</div>';
+    if (h.phone) html += '<div style="text-align:center;font-size:9px;color:#333;">Ph: ' + h.phone + '</div>';
+    html += '<div style="text-align:center;font-size:9px;color:#333;margin-bottom:6px;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
     html += '<div style="font-size:10px;"><strong>Bill#:</strong> ' + billNumber + '  <strong>Date:</strong> ' + billDate + '</div>';
     html += '<div style="font-size:10px;"><strong>Patient:</strong> ' + patientName + (uhid ? ' (' + uhid + ')' : '') + '</div>';
-    html += '<div style="font-size:9px;color:#666;margin:4px 0;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
+    html += '<div style="font-size:9px;color:#333;margin:4px 0;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
     for (var ti = 0; ti < items.length; ti++) {
       var titem = items[ti];
-      var tqty = titem.qty || 1; var trate = titem.rate || 0;
-      html += '<div style="display:flex;justify-content:space-between;font-size:10px;"><span>' + (titem.desc || '-') + ' x' + tqty + '</span><span>\u20B9' + (tqty * trate).toLocaleString('en-IN') + '</span></div>';
+      var tqty = titem.qty || titem.quantity || 1;
+      var trate = titem.rate || titem.price || 0;
+      var tamt = titem.amount || (tqty * trate);
+      var tdesc = titem.desc || titem.description || titem.name || titem.item_name || 'Item';
+      html += '<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;">';
+      html += '<span style="flex:1;">' + tdesc + '</span>';
+      html += '<span style="width:30px;text-align:center;">' + tqty + '</span>';
+      html += '<span style="width:60px;text-align:right;">\u20B9' + Number(tamt).toLocaleString('en-IN') + '</span>';
+      html += '</div>';
     }
     html += '<div style="font-size:9px;margin:4px 0;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
     if (discount > 0) html += '<div style="display:flex;justify-content:space-between;font-size:10px;"><span>Discount</span><span>-\u20B9' + discount.toLocaleString('en-IN') + '</span></div>';
-    html += '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin:4px 0;"><span>TOTAL</span><span>\u20B9' + total.toLocaleString('en-IN') + '</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin:4px 0;"><span>TOTAL</span><span>\u20B9' + total.toLocaleString('en-IN') + '</span></div>';
     html += '<div style="font-size:9px;font-style:italic;margin-bottom:4px;">' + wordsStr + '</div>';
     html += '<div style="font-size:10px;">Paid: ' + paymentMode + ' \u20B9' + paid.toLocaleString('en-IN') + '</div>';
     if (balance > 0) html += '<div style="font-size:10px;color:#b91c1c;font-weight:600;">Balance: \u20B9' + balance.toLocaleString('en-IN') + '</div>';
     html += '<div style="font-size:9px;margin:6px 0;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
     if (qrHash) html += '<div style="text-align:center;margin:6px 0;">' + qrImgHtml + '</div>';
-    html += '<div style="text-align:center;font-size:8px;color:#999;">Thank you! Powered by MediHost\u2122</div>';
+    html += '<div style="text-align:center;font-size:8px;color:#555;">Thank you! Powered by MediHost\u2122</div>';
 
   } else {
     /* ===== A4/A5 \u2014 GRID or CLEAN STYLE ===== */
 
     /* Header with logo + hospital info + QR */
-    html += '<div style="text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#555;margin-bottom:6px;">Tax Invoice</div>';
+    html += '<div style="text-align:center;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#222;margin-bottom:6px;">Tax Invoice</div>';
 
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:8px;border-bottom:' + headerBorder + ';">';
     /* Left: logo + hospital */
     html += '<div style="flex:1;">';
     if (logoHtml) html += '<div style="margin-bottom:4px;">' + logoHtml + '</div>';
-    html += '<div style="font-size:' + spec.titleSize + 'px;font-weight:700;">' + hospitalName + '</div>';
+    html += '<div style="font-size:' + spec.titleSize + 'px;font-weight:800;">' + hospitalName + '</div>';
     if (tagline) html += '<div style="font-size:10px;color:#059669;font-style:italic;">' + tagline + '</div>';
-    if (addressStr) html += '<div style="font-size:10px;color:#666;">' + addressStr + '</div>';
-    if (contactStr) html += '<div style="font-size:10px;color:#666;">' + contactStr + '</div>';
-    if (gstin) html += '<div style="font-size:10px;font-weight:600;color:#444;margin-top:2px;">GSTIN: ' + gstin + '</div>';
-    if (regNum) html += '<div style="font-size:10px;color:#666;">Reg No: ' + regNum + '</div>';
+    if (addressStr) html += '<div style="font-size:10px;color:#333;">' + addressStr + '</div>';
+    if (contactStr) html += '<div style="font-size:10px;color:#333;">' + contactStr + '</div>';
+    if (gstin) html += '<div style="font-size:10px;font-weight:600;color:#222;margin-top:2px;">GSTIN: ' + gstin + '</div>';
+    if (regNum) html += '<div style="font-size:10px;color:#333;">Reg No: ' + regNum + '</div>';
     html += '</div>';
     /* Right: QR */
     if (qrImgHtml) html += '<div style="margin-left:12px;">' + qrImgHtml + '</div>';
@@ -7101,16 +7108,16 @@ function printBillHTML(printData, overrides) {
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:' + (isGrid ? borderStyle : '0.5px solid #ddd') + ';margin-top:8px;">';
     /* Bill To */
     html += '<div style="padding:8px 10px;' + (isGrid ? 'border-right:' + borderStyle + ';' : '') + '">';
-    html += '<div style="font-size:9px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Bill To</div>';
+    html += '<div style="font-size:9px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Bill To</div>';
     html += '<div style="font-size:' + spec.fontSize + 'px;font-weight:600;">' + patientName + '</div>';
     if (patAge || patGender) html += '<div style="font-size:' + spec.fontSize + 'px;">' + (patAge ? patAge + ' Yrs' : '') + (patAge && patGender ? ' / ' : '') + (patGender || '') + '</div>';
     if (uhid) html += '<div style="font-size:' + spec.fontSize + 'px;">UHID: ' + uhid + '</div>';
     if (patPhone) html += '<div style="font-size:' + spec.fontSize + 'px;">Ph: ' + patPhone + '</div>';
-    if (patAddress) html += '<div style="font-size:' + spec.fontSize + 'px;color:#666;">' + patAddress + '</div>';
+    if (patAddress) html += '<div style="font-size:' + spec.fontSize + 'px;color:#333;">' + patAddress + '</div>';
     html += '</div>';
     /* Invoice Details */
     html += '<div style="padding:8px 10px;">';
-    html += '<div style="font-size:9px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Invoice Details</div>';
+    html += '<div style="font-size:9px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Invoice Details</div>';
     html += '<div style="font-size:' + spec.fontSize + 'px;"><strong>Bill No:</strong> <span style="color:#059669;font-weight:600;">' + billNumber + '</span></div>';
     html += '<div style="font-size:' + spec.fontSize + 'px;"><strong>Date:</strong> ' + billDate + '</div>';
     html += '<div style="font-size:' + spec.fontSize + 'px;"><strong>Place of Supply:</strong> ' + (printData.place_of_supply || h.state || '36-Telangana') + '</div>';
@@ -7121,12 +7128,12 @@ function printBillHTML(printData, overrides) {
     /* Items table */
     html += '<table style="margin-top:8px;">';
     html += '<thead><tr style="background:' + headerBg + ';">';
-    html += '<th style="padding:' + cellPadding + ';text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;color:#666;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">#</th>';
-    html += '<th style="padding:' + cellPadding + ';text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;color:#666;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Item</th>';
-    if (hasHsn) html += '<th style="padding:' + cellPadding + ';text-align:left;font-size:10px;font-weight:600;color:#666;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">HSN/SAC</th>';
-    html += '<th style="padding:' + cellPadding + ';text-align:center;font-size:10px;font-weight:600;color:#666;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Qty</th>';
-    html += '<th style="padding:' + cellPadding + ';text-align:right;font-size:10px;font-weight:600;color:#666;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Rate</th>';
-    html += '<th style="padding:' + cellPadding + ';text-align:right;font-size:10px;font-weight:600;color:#666;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Amount</th>';
+    html += '<th style="padding:' + cellPadding + ';text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;color:#333;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">#</th>';
+    html += '<th style="padding:' + cellPadding + ';text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;color:#333;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Item</th>';
+    if (hasHsn) html += '<th style="padding:' + cellPadding + ';text-align:left;font-size:10px;font-weight:700;color:#333;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">HSN/SAC</th>';
+    html += '<th style="padding:' + cellPadding + ';text-align:center;font-size:10px;font-weight:700;color:#333;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Qty</th>';
+    html += '<th style="padding:' + cellPadding + ';text-align:right;font-size:10px;font-weight:700;color:#333;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Rate</th>';
+    html += '<th style="padding:' + cellPadding + ';text-align:right;font-size:10px;font-weight:700;color:#333;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Amount</th>';
     html += '</tr></thead><tbody>' + itemsHtml + '</tbody>';
 
     /* Totals */
@@ -7137,11 +7144,11 @@ function printBillHTML(printData, overrides) {
       html += '<tr><td colspan="' + (colCount-1) + '" style="text-align:right;padding:4px 8px;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">CGST</td><td style="text-align:right;padding:4px 8px;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">\u20B9' + cgst.toFixed(2) + '</td></tr>';
       html += '<tr><td colspan="' + (colCount-1) + '" style="text-align:right;padding:4px 8px;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">SGST</td><td style="text-align:right;padding:4px 8px;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">\u20B9' + sgst.toFixed(2) + '</td></tr>';
     }
-    html += '<tr style="border-top:' + headerBorder + ';"><td colspan="' + (colCount-1) + '" style="text-align:right;padding:8px;font-size:14px;font-weight:700;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Grand Total</td><td style="text-align:right;padding:8px;font-size:14px;font-weight:700;color:#059669;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">\u20B9' + total.toLocaleString('en-IN') + '</td></tr>';
+    html += '<tr style="border-top:' + headerBorder + ';"><td colspan="' + (colCount-1) + '" style="text-align:right;padding:8px;font-size:15px;font-weight:800;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Grand Total</td><td style="text-align:right;padding:8px;font-size:15px;font-weight:800;color:#059669;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">\u20B9' + total.toLocaleString('en-IN') + '</td></tr>';
     html += '</tfoot></table>';
 
     /* Amount in words */
-    html += '<div style="padding:6px 8px;font-size:10px;font-style:italic;color:#555;border-top:0.5px solid #ddd;border-bottom:0.5px solid #ddd;margin-top:4px;">' + wordsStr + '</div>';
+    html += '<div style="padding:6px 8px;font-size:10px;font-style:italic;color:#333;border-top:0.5px solid #ddd;border-bottom:0.5px solid #ddd;margin-top:4px;">' + wordsStr + '</div>';
 
     /* Payment section */
     html += '<div style="padding:8px;margin-top:4px;">';
@@ -7155,20 +7162,20 @@ function printBillHTML(printData, overrides) {
     /* Footer: terms + signature */
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:16px;padding-top:10px;border-top:' + headerBorder + ';">';
     /* Terms left */
-    html += '<div style="font-size:8px;color:#999;max-width:50%;line-height:1.5;">';
+    html += '<div style="font-size:8px;color:#555;max-width:50%;line-height:1.5;">';
     if (terms) html += terms;
     html += '</div>';
     /* Signature right */
     html += '<div style="text-align:center;">';
-    html += '<div style="width:120px;border-top:0.5px solid #999;margin-top:30px;padding-top:4px;font-size:10px;color:#666;">Authorized Signatory</div>';
-    if (signatory) html += '<div style="font-size:10px;color:#444;font-weight:500;">' + signatory + '</div>';
-    html += '<div style="font-size:9px;color:#888;margin-top:2px;">For ' + hospitalName + '</div>';
+    html += '<div style="width:120px;border-top:0.5px solid #555;margin-top:30px;padding-top:4px;font-size:10px;color:#333;">Authorized Signatory</div>';
+    if (signatory) html += '<div style="font-size:10px;color:#222;font-weight:500;">' + signatory + '</div>';
+    html += '<div style="font-size:9px;color:#444;margin-top:2px;">For ' + hospitalName + '</div>';
     html += '</div>';
     html += '</div>';
 
     /* Verification URL + MediHost footer */
-    if (qrUrl) html += '<div style="text-align:center;margin-top:10px;padding-top:6px;border-top:1px dashed #ddd;font-size:8px;color:#999;">Verify: ' + qrUrl + '</div>';
-    html += '<div style="text-align:center;margin-top:4px;font-size:8px;color:#ccc;">Powered by MediHost\u2122</div>';
+    if (qrUrl) html += '<div style="text-align:center;margin-top:10px;padding-top:6px;border-top:1px dashed #ddd;font-size:8px;color:#555;">Verify: ' + qrUrl + '</div>';
+    html += '<div style="text-align:center;margin-top:4px;font-size:8px;color:#888;">Powered by MediHost\u2122</div>';
   }
 
   html += '</body></html>';
