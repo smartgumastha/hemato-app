@@ -831,9 +831,55 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
 @keyframes shimmer { to { background-position: -200% 0; } }
 
 /* ============================================================
+   BILLING V2 — ACTION BAR, LEDGER, SETTINGS, FILTERS
+   ============================================================ */
+.action-bar { display:flex; align-items:center; gap:12px; padding:14px 18px; background:var(--mw-surface); border:1px solid var(--mw-border); border-radius:var(--mw-radius-lg); flex-wrap:wrap; margin-top:16px; }
+.ab-section { display:flex; align-items:center; gap:6px; }
+.ab-label { font-size:11px; color:var(--mw-text-3); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+.ab-select { background:var(--mw-surface-2); border:1px solid var(--mw-border); border-radius:var(--mw-radius-sm); padding:6px 10px; font-size:12px; color:var(--mw-text); font-family:var(--mw-font); outline:none; }
+.ab-btn { padding:8px 16px; border-radius:var(--mw-radius); font-size:12px; font-weight:700; cursor:pointer; font-family:var(--mw-font); border:1px solid var(--mw-border); background:var(--mw-surface); color:var(--mw-text-2); transition:all var(--mw-transition); }
+.ab-btn:hover { border-color:var(--mw-primary); color:var(--mw-primary); }
+.ab-btn.primary { background:var(--mw-primary); color:#fff; border-color:var(--mw-primary); }
+.ab-btn.primary:hover { background:var(--mw-primary-dark); }
+.ab-btn.wa { background:#25d366; color:#fff; border-color:#25d366; }
+.ab-btn.wa:hover { background:#1da851; }
+
+.bv2-card { background:var(--mw-surface); border:1px solid var(--mw-border); border-radius:var(--mw-radius-lg); padding:20px; margin-bottom:14px; }
+.bv2-card-title { font-size:12px; font-weight:600; color:var(--mw-text-3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px; }
+
+.bv2-summary-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.bv2-summary-card { background:var(--mw-surface); border:1px solid var(--mw-border); border-radius:var(--mw-radius-lg); padding:18px; text-align:center; }
+.bv2-summary-card .sc-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--mw-text-3); }
+.bv2-summary-card .sc-value { font-family:var(--mw-font-display); font-size:26px; font-weight:700; margin-top:6px; }
+
+.bv2-filter-row { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+.bv2-filter-btn { padding:7px 14px; border-radius:var(--mw-radius); font-size:12px; font-weight:600; cursor:pointer; font-family:var(--mw-font); border:1px solid var(--mw-border); background:var(--mw-surface); color:var(--mw-text-2); transition:all var(--mw-transition); }
+.bv2-filter-btn:hover, .bv2-filter-btn.active { background:var(--mw-primary-light); border-color:var(--mw-primary); color:var(--mw-primary); }
+.bv2-filter-select { background:var(--mw-surface); border:1px solid var(--mw-border); border-radius:var(--mw-radius); padding:7px 10px; font-size:12px; color:var(--mw-text); font-family:var(--mw-font); outline:none; }
+.bv2-filter-date { background:var(--mw-surface); border:1px solid var(--mw-border); border-radius:var(--mw-radius); padding:7px 10px; font-size:12px; color:var(--mw-text); font-family:var(--mw-font); outline:none; }
+
+.bv2-settings-section { background:var(--mw-surface); border:1px solid var(--mw-border); border-radius:var(--mw-radius-lg); padding:24px; margin-bottom:16px; }
+.bv2-settings-title { font-family:var(--mw-font-display); font-size:15px; font-weight:600; color:var(--mw-primary); margin-bottom:16px; }
+.bv2-settings-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--mw-border); }
+.bv2-settings-row:last-child { border-bottom:none; }
+.bv2-settings-row label { font-size:13px; color:var(--mw-text-2); min-width:180px; }
+.bv2-settings-row input, .bv2-settings-row select, .bv2-settings-row textarea { background:var(--mw-surface-2); border:1px solid var(--mw-border); border-radius:var(--mw-radius-sm); padding:8px 12px; font-size:13px; color:var(--mw-text); font-family:var(--mw-font); outline:none; flex:1; max-width:320px; }
+.bv2-settings-row textarea { min-height:60px; resize:vertical; }
+
+.bv2-toggle { position:relative; width:40px; height:22px; cursor:pointer; display:inline-block; }
+.bv2-toggle input { opacity:0; width:0; height:0; }
+.bv2-toggle-slider { position:absolute; inset:0; background:var(--mw-border-2); border-radius:22px; transition:0.3s; }
+.bv2-toggle-slider:before { content:''; position:absolute; width:16px; height:16px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:0.3s; }
+.bv2-toggle input:checked + .bv2-toggle-slider { background:var(--mw-primary); }
+.bv2-toggle input:checked + .bv2-toggle-slider:before { transform:translateX(18px); }
+
+.bv2-wallet-card { text-align:center; padding:40px; background:linear-gradient(135deg, var(--mw-accent-light), var(--mw-primary-light)); border:1px solid var(--mw-accent); border-radius:var(--mw-radius-lg); margin-bottom:20px; }
+
+/* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 768px) {
+  .bv2-summary-cards { grid-template-columns: repeat(2,1fr); }
   .sidebar { position: fixed; left: -270px; z-index: 100; box-shadow: var(--mw-shadow-lg); }
   .sidebar.mobile-open { left: 0; }
   .settings-grid { grid-template-columns: 1fr; }
@@ -1164,6 +1210,16 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
      TOAST CONTAINER
      ============================================================ -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- ============ RECEIVE PAYMENT MODAL ============ -->
+<div class="modal-overlay" id="receivePaymentModal" style="display:none">
+  <div class="modal" style="max-width:520px" id="receivePaymentModalBody"></div>
+</div>
+
+<!-- ============ ADVANCE DEPOSIT MODAL ============ -->
+<div class="modal-overlay" id="advanceDepositModal" style="display:none">
+  <div class="modal" style="max-width:480px" id="advanceDepositModalBody"></div>
+</div>
 
 <!-- ============================================================
      AUTH: LOGIN
@@ -2710,6 +2766,9 @@ tat_dashboard:   { label:'TAT Analytics', section:'insights', screen:'screenTatD
   dashboard:    { label: 'Dashboard',     section: 'core', screen: 'screenDashboard',    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="4" rx="1"/><rect x="14" y="10" width="7" height="11" rx="1"/><rect x="3" y="13" width="7" height="8" rx="1"/></svg>', core: true },
   patients:     { label: 'Patients',      section: 'core', screen: 'screenPatients',     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>', core: true },
   billing:      { label: 'Billing',       section: 'core', screen: 'screenBilling',      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>', core: true },
+  patient_ledger:   { label: 'Patient Ledger',   section: 'core', screen: 'screenPatientLedger',   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>', core: true },
+  advance_wallet:   { label: 'Advance / Wallet', section: 'core', screen: 'screenAdvanceWallet',   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>', core: true },
+  billing_settings: { label: 'Billing Settings', section: 'insights', screen: 'screenBillingSettings', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>' },
 
   // --- CLINICAL MODULES ---
   emr:          { label: 'EMR',           section: 'clinical', screen: 'screenEmr',          icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
@@ -2994,7 +3053,76 @@ var LANG_EN = {
   'language.choose_subtitle': 'Select the language you prefer. This is your personal setting — other staff are not affected.',
   'language.continue_in': 'Continue in {language}',
   'language.change_anytime': 'You can change this anytime from Settings',
-  'language.patient_language_hint': 'This language will be used for prescriptions, bills, and WhatsApp messages to this patient'
+  'language.patient_language_hint': 'This language will be used for prescriptions, bills, and WhatsApp messages to this patient',
+
+  // Print / Action bar
+  'print.format': 'Paper format', 'print.a4': 'A4 Full page', 'print.a5': 'A5 Half page',
+  'print.thermal': 'Thermal (80mm)', 'print.style': 'Bill style', 'print.grid': 'Grid (formal)',
+  'print.clean': 'Clean (modern)', 'print.compact': 'Compact (POS)', 'print.language': 'Bill language',
+
+  // Billing — extended
+  'billing.branch': 'Branch', 'billing.items': 'Items', 'billing.add_item': 'Add item',
+  'billing.item_name': 'Item name', 'billing.hsn_sac': 'HSN/SAC', 'billing.qty': 'Qty',
+  'billing.rate': 'Rate', 'billing.amount': 'Amount',
+  'billing.discount.label': 'Discount', 'billing.discount.flat': 'Flat (₹)',
+  'billing.discount.percent': 'Percentage (%)', 'billing.gst.toggle': 'GST applicable',
+  'billing.gst.cgst': 'CGST %', 'billing.gst.sgst': 'SGST %',
+  'billing.total.subtotal': 'Sub total', 'billing.total.discount': 'Discount',
+  'billing.total.tax': 'Tax', 'billing.total.grand': 'Total',
+  'billing.total.words': 'Amount in words', 'billing.total.received': 'Received',
+  'billing.total.from_wallet': 'From wallet', 'billing.total.balance': 'Balance due',
+  'billing.wallet.available': 'Wallet balance available', 'billing.wallet.use': 'Use wallet balance',
+  'billing.payment_method': 'Payment method', 'billing.amount_received': 'Amount received',
+  'billing.status.pending': 'Pending', 'billing.status.partial': 'Partial',
+  'billing.status.paid': 'Paid', 'billing.status.cancelled': 'Cancelled',
+  'billing.receive_payment': 'Receive payment',
+  'billing.advance.title': 'Advance / Wallet', 'billing.advance.add': 'Add advance',
+  'billing.advance.balance': 'Wallet balance', 'billing.advance.refund': 'Refund advance',
+
+  // Ledger (Katha book)
+  'ledger.title': 'Patient Ledger', 'ledger.total_billed': 'Total billed',
+  'ledger.total_paid': 'Total paid', 'ledger.wallet_balance': 'Wallet balance',
+  'ledger.outstanding': 'Outstanding', 'ledger.type.bill': 'Bill',
+  'ledger.type.payment': 'Payment', 'ledger.type.advance': 'Advance',
+  'ledger.type.wallet': 'Wallet', 'ledger.type.refund': 'Refund',
+  'ledger.print': 'Print ledger', 'ledger.whatsapp': 'WhatsApp statement',
+
+  // Collection report
+  'collection.title': 'Collection Report', 'collection.total': 'Total collection',
+  'collection.bills_count': 'Bills', 'collection.pending': 'Pending',
+  'collection.wallet_used': 'Wallet used', 'collection.branch_filter': 'Branch',
+  'collection.all_branches': 'All branches', 'collection.export': 'Export CSV',
+  'collection.today': 'Today', 'collection.this_week': 'This week',
+  'collection.this_month': 'This month', 'collection.custom': 'Custom range',
+
+  // Billing settings
+  'settings.billing': 'Billing Settings', 'settings.billing.print': 'Print preferences',
+  'settings.billing.qr': 'QR code verification', 'settings.billing.tax': 'Tax & compliance',
+  'settings.billing.content': 'Bill content', 'settings.billing.wallet': 'Wallet & advance',
+
+  // Sidebar — billing sub-items
+  'sidebar.patient_ledger': 'Patient Ledger', 'sidebar.advance_wallet': 'Advance / Wallet',
+  'sidebar.billing_settings': 'Billing Settings',
+
+  // WhatsApp billing
+  'whatsapp.bill_message': 'Namaste {patient_name}, your bill #{bill_number} for ₹{amount} has been generated. Paid: ₹{paid} | Balance: ₹{balance}. — {hospital_name}',
+
+  // Success — billing
+  'success.payment_received.title': 'Payment received',
+  'success.payment_received.message': '₹{amount} received via {method}. Receipt #{receipt}. Bill balance: ₹{balance}.',
+  'success.advance_deposited.title': 'Advance deposited',
+  'success.advance_deposited.message': '₹{amount} added to wallet. New balance: ₹{balance}.',
+  'success.bill_cancelled.title': 'Bill cancelled',
+  'success.bill_cancelled.message': 'Bill #{bill_number} cancelled. Wallet refund: ₹{refund}.',
+
+  // Common — billing extras
+  'common.walkin': 'Walk-in sale', 'common.register_bill': 'Register & Bill',
+  'common.cash': 'Cash', 'common.card': 'Card', 'common.upi': 'UPI',
+  'common.bank_transfer': 'Bank Transfer', 'common.online': 'Online',
+  'common.reference': 'Reference', 'common.notes': 'Notes',
+  'common.type': 'Type', 'common.debit': 'Debit', 'common.credit': 'Credit',
+  'common.balance': 'Balance', 'common.method': 'Method', 'common.count': 'Count',
+  'common.percent': '%', 'common.total': 'Total'
 };
 
 function t(key, params) {
@@ -8263,7 +8391,10 @@ var v44ScreenHandlers = {
   screenDoctorDash:   function() { v44Render(renderDoctorDashboard); },
   screenNurseTriage:  function() { v44Render(renderNurseTriageModule); },
   screenTatDashboard: function() { v44Render(renderTatDashboard); },
-  screenLis:          function() { v44Render(renderLabDashboard); }
+  screenLis:          function() { v44Render(renderLabDashboard); },
+  screenPatientLedger:   function() { v44Render(renderPatientLedgerScreen); },
+  screenAdvanceWallet:   function() { v44Render(renderAdvanceWalletScreen); },
+  screenBillingSettings: function() { v44Render(renderBillingSettingsScreen); }
 };
 
 function v44Render(renderFn) {
@@ -12593,6 +12724,518 @@ async function lisSaveTest() {
     loadLisTabContent();
   } catch(e) { showToast('Save failed: ' + e.message, 'error'); }
 }
+
+/* ================================================================
+   BILLING V2 — renderActionBar
+   ================================================================ */
+function renderActionBar(options) {
+  var docType = options.documentType || 'bill';
+  var docId = options.documentId || '';
+  var phone = options.patientPhone || '';
+  var email = options.patientEmail || '';
+  var pLang = options.patientLang || 'te';
+  var langNames = {te:'Telugu',hi:'Hindi',kn:'Kannada',ta:'Tamil',ml:'Malayalam',mr:'Marathi',bn:'Bengali',gu:'Gujarati'};
+  var langName = langNames[pLang] || pLang;
+
+  var h = '<div class="action-bar">';
+  h += '<div class="ab-section"><span class="ab-label">' + t('print.format') + '</span>';
+  h += '<select class="ab-select" id="ab_printFormat"><option value="a4">' + t('print.a4') + '</option><option value="a5">' + t('print.a5') + '</option><option value="thermal">' + t('print.thermal') + '</option></select></div>';
+  h += '<div class="ab-section"><span class="ab-label">' + t('print.style') + '</span>';
+  h += '<select class="ab-select" id="ab_printStyle"><option value="clean">' + t('print.clean') + '</option><option value="grid">' + t('print.grid') + '</option><option value="compact">' + t('print.compact') + '</option></select></div>';
+  h += '<div class="ab-section"><span class="ab-label">' + t('print.language') + '</span>';
+  h += '<select class="ab-select" id="ab_printLang"><option value="en">English only</option><option value="en+' + pLang + '">English + ' + langName + '</option><option value="' + pLang + '">' + langName + ' only</option></select></div>';
+  h += '<div class="ab-section" style="margin-left:auto">';
+  h += '<button class="ab-btn primary" onclick="abPrint(\'' + docType + '\',\'' + docId + '\')">' + t('common.print') + '</button>';
+  if (phone) h += '<button class="ab-btn wa" onclick="abWhatsApp(\'' + docType + '\',\'' + docId + '\',\'' + phone + '\')">WhatsApp</button>';
+  h += '<button class="ab-btn" onclick="abPDF(\'' + docType + '\',\'' + docId + '\')">' + t('common.print') + ' PDF</button>';
+  if (email) h += '<button class="ab-btn" onclick="abEmail(\'' + docType + '\',\'' + docId + '\',\'' + email + '\')">Email</button>';
+  h += '</div></div>';
+  return h;
+}
+
+function abPrint(docType, docId) {
+  var fmt = document.getElementById('ab_printFormat').value;
+  var style = document.getElementById('ab_printStyle').value;
+  var lang = document.getElementById('ab_printLang').value;
+  var url = API_BASE + '/api/' + docType + 's/' + docId + '/print?format=' + fmt + '&style=' + style + '&language=' + lang;
+  var w = window.open(url, '_blank');
+  if (w) { w.onload = function() { w.print(); }; }
+}
+
+function abWhatsApp(docType, docId, phone) {
+  var msg = t('whatsapp.bill_message', {
+    patient_name: '', bill_number: docId, amount: '', paid: '', balance: '',
+    hospital_name: (appState.hospital || {}).name || ''
+  });
+  window.open('https://wa.me/91' + phone.replace(/^(\+91|91)/, '') + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function abPDF(docType, docId) {
+  var fmt = document.getElementById('ab_printFormat').value;
+  var style = document.getElementById('ab_printStyle').value;
+  var lang = document.getElementById('ab_printLang').value;
+  window.open(API_BASE + '/api/' + docType + 's/' + docId + '/print?format=' + fmt + '&style=' + style + '&language=' + lang + '&download=1', '_blank');
+}
+
+function abEmail(docType, docId, email) {
+  api.post('/api/documents/send-email', {
+    document_type: docType, document_id: docId, recipient_email: email,
+    format: document.getElementById('ab_printFormat').value,
+    style: document.getElementById('ab_printStyle').value,
+    language: document.getElementById('ab_printLang').value
+  }).then(function() {
+    showNotification('success', 'Email sent', 'Document sent to ' + email);
+  }).catch(function(e) { showNotification('error', 'Email failed', e.message); });
+}
+
+/* ================================================================
+   BILLING V2 — amountInWords (Indian)
+   ================================================================ */
+function amountInWords(num) {
+  var ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten',
+    'Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  var tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  if (num === 0) return 'Zero Rupees';
+  var n = Math.floor(Math.abs(num));
+  var paise = Math.round((Math.abs(num) - n) * 100);
+  function twoDigit(x) { if (x < 20) return ones[x]; return tens[Math.floor(x / 10)] + (x % 10 ? ' ' + ones[x % 10] : ''); }
+  function convert(x) {
+    if (x === 0) return '';
+    var parts = [];
+    var crore = Math.floor(x / 10000000); x %= 10000000;
+    var lakh = Math.floor(x / 100000); x %= 100000;
+    var thousand = Math.floor(x / 1000); x %= 1000;
+    var hundred = Math.floor(x / 100); x %= 100;
+    if (crore) parts.push(twoDigit(crore) + ' Crore');
+    if (lakh) parts.push(twoDigit(lakh) + ' Lakh');
+    if (thousand) parts.push(twoDigit(thousand) + ' Thousand');
+    if (hundred) parts.push(ones[hundred] + ' Hundred');
+    if (x) parts.push(twoDigit(x));
+    return parts.join(' ');
+  }
+  var result = convert(n) + ' Rupees';
+  if (paise > 0) result += ' and ' + twoDigit(paise) + ' Paise';
+  return result + ' Only';
+}
+
+/* ================================================================
+   BILLING V2 — Receive Payment Modal (works on existing bill list)
+   ================================================================ */
+function openReceivePayment(billId, total, paid, balance, billNumber) {
+  var h = '<div class="modal-title">' + t('billing.receive_payment') + '<button class="modal-close" onclick="closeModal(\'receivePaymentModal\')">&times;</button></div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px">';
+  h += '<div class="bv2-card" style="text-align:center;margin:0"><div style="font-size:11px;color:var(--mw-text-3)">Bill #</div><div style="font-weight:700;color:var(--mw-primary);margin-top:4px">' + billNumber + '</div></div>';
+  h += '<div class="bv2-card" style="text-align:center;margin:0"><div style="font-size:11px;color:var(--mw-text-3)">' + t('billing.total.grand') + '</div><div style="font-weight:700;margin-top:4px">₹' + total.toLocaleString('en-IN') + '</div></div>';
+  h += '<div class="bv2-card" style="text-align:center;margin:0"><div style="font-size:11px;color:var(--mw-text-3)">' + t('billing.status.paid') + '</div><div style="font-weight:700;color:var(--mw-success);margin-top:4px">₹' + paid.toLocaleString('en-IN') + '</div></div>';
+  h += '<div class="bv2-card" style="text-align:center;margin:0"><div style="font-size:11px;color:var(--mw-text-3)">' + t('billing.total.balance') + '</div><div style="font-weight:700;color:var(--mw-danger);margin-top:4px">₹' + balance.toLocaleString('en-IN') + '</div></div>';
+  h += '</div>';
+
+  h += '<div class="form-group"><label>' + t('billing.amount_received') + '</label>';
+  h += '<input type="number" id="rp_amount" value="' + balance + '" min="0" max="' + balance + '"></div>';
+  h += '<div class="form-group"><label>' + t('billing.payment_method') + '</label>';
+  h += '<select id="rp_method" style="width:100%;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:8px;font-family:var(--mw-font)">';
+  h += '<option value="Cash">' + t('common.cash') + '</option><option value="Card">' + t('common.card') + '</option>';
+  h += '<option value="UPI">' + t('common.upi') + '</option><option value="Bank Transfer">' + t('common.bank_transfer') + '</option>';
+  h += '<option value="Online">' + t('common.online') + '</option></select></div>';
+  h += '<div class="form-group"><label>' + t('common.reference') + '</label>';
+  h += '<input type="text" id="rp_reference" placeholder="UPI txn ID / Card last 4 / Cheque no"></div>';
+  h += '<div class="form-group"><label>' + t('common.notes') + '</label>';
+  h += '<input type="text" id="rp_notes" placeholder="Optional notes"></div>';
+  h += '<button class="btn btn-primary" style="width:100%;padding:12px" onclick="rpSubmit(\'' + billId + '\')">' + t('billing.receive_payment') + '</button>';
+
+  document.getElementById('receivePaymentModalBody').innerHTML = h;
+  openModal('receivePaymentModal');
+}
+
+function rpSubmit(billId) {
+  var amount = parseFloat(document.getElementById('rp_amount').value) || 0;
+  if (amount <= 0) { showNotification('error', 'Invalid amount', 'Please enter a valid amount'); return; }
+  var method = document.getElementById('rp_method').value;
+  api.post(api.h('/payments/receive'), {
+    bill_id: billId, amount: amount, payment_method: method,
+    reference: document.getElementById('rp_reference').value,
+    notes: document.getElementById('rp_notes').value
+  }).then(function(d) {
+    showNotification('success', t('success.payment_received.title'),
+      t('success.payment_received.message', { amount: amount.toLocaleString('en-IN'), method: method, receipt: d.receipt_number || '—', balance: (d.balance_due || 0).toLocaleString('en-IN') }));
+    closeModal('receivePaymentModal');
+    loadBills();
+  }).catch(function(e) { showNotification('error', 'Payment failed', e.message); });
+}
+
+/* ================================================================
+   BILLING V2 — Patient Ledger (Katha Book)
+   ================================================================ */
+function renderPatientLedgerScreen() {
+  var mc = document.getElementById('module-content');
+  var h = '<div class="section-header"><div class="section-title">' + t('ledger.title') + '</div></div>';
+  h += '<div style="display:flex;gap:10px;margin-bottom:16px"><input type="text" id="pl_search" placeholder="Search by name, UHID, or phone..." style="flex:1" oninput="plSearchDebounce(this.value)"></div>';
+  h += '<div id="pl_results" style="display:none;margin-bottom:12px"></div>';
+  h += '<div id="pl_content"></div>';
+  mc.innerHTML = h;
+}
+
+var plSearchTimer = null;
+function plSearchDebounce(val) { clearTimeout(plSearchTimer); plSearchTimer = setTimeout(function() { plSearch(val); }, 400); }
+
+function plSearch(val) {
+  if (!val || val.length < 2) { document.getElementById('pl_results').style.display = 'none'; return; }
+  api.get(api.h('/patients?search=' + encodeURIComponent(val))).then(function(data) {
+    var area = document.getElementById('pl_results');
+    var patients = Array.isArray(data) ? data : (data.patients || []);
+    if (!patients.length) { area.style.display = 'block'; area.innerHTML = '<div style="padding:12px;color:var(--mw-text-3)">' + t('common.loading') + '... No results</div>'; return; }
+    var h = '<div class="bv2-card" style="padding:6px;margin:0">';
+    for (var i = 0; i < patients.length; i++) {
+      var p = patients[i];
+      h += '<div style="padding:8px 12px;cursor:pointer;border-radius:var(--mw-radius);transition:background 0.15s" onmouseover="this.style.background=\'var(--mw-surface-2)\'" onmouseout="this.style.background=\'transparent\'" onclick="plSelectPatient(\'' + (p.patient_id || p.id) + '\')">';
+      h += '<span style="font-weight:600;color:var(--mw-text)">' + (p.first_name || '') + ' ' + (p.last_name || '') + '</span>';
+      h += ' <span style="font-size:12px;color:var(--mw-text-3)">&middot; ' + (p.uhid || p.mrn || '') + ' &middot; ' + (p.phone_number || '') + '</span></div>';
+    }
+    h += '</div>';
+    area.style.display = 'block'; area.innerHTML = h;
+  }).catch(function() { });
+}
+
+function plSelectPatient(patientId) {
+  document.getElementById('pl_results').style.display = 'none';
+  document.getElementById('pl_content').innerHTML = '<div style="padding:24px;text-align:center;color:var(--mw-text-3)">' + t('common.loading') + '</div>';
+
+  api.get(api.h('/ledger/' + patientId)).then(function(d) {
+    var summary = d.summary || {};
+    var entries = d.entries || [];
+    var patient = d.patient || {};
+    var h = '';
+
+    h += '<div style="margin-bottom:16px;font-family:var(--mw-font-display);font-size:18px;font-weight:700;color:var(--mw-text)">' + (patient.first_name || '') + ' ' + (patient.last_name || '') + ' <span style="font-size:13px;color:var(--mw-text-3);font-weight:400">' + (patient.uhid || patient.mrn || '') + '</span></div>';
+
+    h += '<div class="bv2-summary-cards">';
+    h += '<div class="bv2-summary-card" style="border-left:4px solid var(--mw-danger)"><div class="sc-label">' + t('ledger.total_billed') + '</div><div class="sc-value" style="color:var(--mw-danger)">₹' + (parseFloat(summary.total_billed) || 0).toLocaleString('en-IN') + '</div></div>';
+    h += '<div class="bv2-summary-card" style="border-left:4px solid var(--mw-success)"><div class="sc-label">' + t('ledger.total_paid') + '</div><div class="sc-value" style="color:var(--mw-success)">₹' + (parseFloat(summary.total_paid) || 0).toLocaleString('en-IN') + '</div></div>';
+    h += '<div class="bv2-summary-card" style="border-left:4px solid var(--mw-accent)"><div class="sc-label">' + t('ledger.wallet_balance') + '</div><div class="sc-value" style="color:var(--mw-accent)">₹' + (parseFloat(summary.wallet_balance) || 0).toLocaleString('en-IN') + '</div></div>';
+    h += '<div class="bv2-summary-card" style="border-left:4px solid var(--mw-warning)"><div class="sc-label">' + t('ledger.outstanding') + '</div><div class="sc-value" style="color:var(--mw-warning)">₹' + (parseFloat(summary.outstanding) || 0).toLocaleString('en-IN') + '</div></div>';
+    h += '</div>';
+
+    var typeBadge = { bill:'background:var(--mw-danger-light);color:var(--mw-danger)', payment:'background:var(--mw-success-light);color:var(--mw-success)', advance:'background:var(--mw-accent-light);color:var(--mw-accent)', wallet:'background:var(--mw-purple-light);color:var(--mw-purple)', refund:'background:#f1f5f9;color:#64748b' };
+
+    h += '<div class="bv2-card"><table class="mw-table"><thead><tr><th>' + t('common.date') + '</th><th>' + t('common.type') + '</th><th>Reference #</th><th style="text-align:right">' + t('common.debit') + '</th><th style="text-align:right">' + t('common.credit') + '</th><th style="text-align:right">' + t('common.balance') + '</th></tr></thead><tbody>';
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i];
+      var badge = typeBadge[e.type] || typeBadge.refund;
+      h += '<tr><td>' + (e.date ? new Date(e.date).toLocaleDateString('en-IN') : '—') + '</td>';
+      h += '<td><span style="display:inline-block;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600;' + badge + '">' + t('ledger.type.' + (e.type || 'bill')) + '</span></td>';
+      h += '<td>' + (e.reference || '—') + '</td>';
+      h += '<td style="text-align:right;color:var(--mw-danger)">' + (e.debit ? '₹' + parseFloat(e.debit).toLocaleString('en-IN') : '') + '</td>';
+      h += '<td style="text-align:right;color:var(--mw-success)">' + (e.credit ? '₹' + parseFloat(e.credit).toLocaleString('en-IN') : '') + '</td>';
+      var bal = parseFloat(e.running_balance) || 0;
+      h += '<td style="text-align:right;color:' + (bal >= 0 ? 'var(--mw-success)' : 'var(--mw-danger)') + '">₹' + Math.abs(bal).toLocaleString('en-IN') + '</td></tr>';
+    }
+    if (entries.length === 0) h += '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--mw-text-3)">No ledger entries found</td></tr>';
+    h += '</tbody></table></div>';
+
+    var outstanding = parseFloat(summary.outstanding) || 0;
+    h += '<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">';
+    if (outstanding > 0) h += '<button class="btn btn-primary btn-sm" onclick="plReceiveOutstanding(\'' + patientId + '\',' + outstanding + ')">' + t('billing.receive_payment') + ' ₹' + outstanding.toLocaleString('en-IN') + '</button>';
+    h += '<button class="btn btn-sm" style="background:var(--mw-accent);color:#fff;border:none" onclick="showScreen(\'screenAdvanceWallet\')">' + t('billing.advance.add') + '</button>';
+    h += '<button class="btn btn-outline btn-sm" onclick="plPrintLedger(\'' + patientId + '\')">' + t('ledger.print') + '</button>';
+    h += '<button class="ab-btn wa" onclick="plWhatsAppLedger(\'' + (patient.phone_number || '') + '\')">' + t('ledger.whatsapp') + '</button>';
+    h += '</div>';
+
+    document.getElementById('pl_content').innerHTML = h;
+  }).catch(function() {
+    document.getElementById('pl_content').innerHTML = '<div style="color:var(--mw-danger);padding:16px">Error loading ledger</div>';
+  });
+}
+
+function plReceiveOutstanding(patientId, outstanding) {
+  api.get(api.h('/bills?patient_id=' + patientId + '&status=pending')).then(function(data) {
+    var bills = Array.isArray(data) ? data : (data.bills || []);
+    if (bills.length) {
+      var b = bills[0];
+      openReceivePayment(b.id || b.bill_id, parseFloat(b.total_amount || b.total) || 0, parseFloat(b.amount_paid || 0), parseFloat(b.balance) || 0, b.bill_number || b.id);
+    } else { showNotification('info', 'No pending bills', 'No pending bills found for this patient'); }
+  });
+}
+
+function plPrintLedger(patientId) {
+  var w = window.open(API_BASE + api.h('/ledger/' + patientId + '/print'), '_blank');
+  if (w) w.onload = function() { w.print(); };
+}
+
+function plWhatsAppLedger(phone) {
+  if (!phone) { showNotification('error', 'No phone', 'Patient phone number not available'); return; }
+  window.open('https://wa.me/91' + phone.replace(/^(\+91|91)/, '') + '?text=' + encodeURIComponent('Your account statement is ready. Please contact us for details.'), '_blank');
+}
+
+/* ================================================================
+   BILLING V2 — Advance / Wallet
+   ================================================================ */
+var awSelectedPatient = null;
+
+function renderAdvanceWalletScreen() {
+  awSelectedPatient = null;
+  var mc = document.getElementById('module-content');
+  var h = '<div class="section-header"><div class="section-title">' + t('billing.advance.title') + '</div></div>';
+  h += '<div style="display:flex;gap:10px;margin-bottom:16px"><input type="text" id="aw_phone" placeholder="Search patient by phone..." style="flex:1" oninput="awPhoneSearch(this.value)"></div>';
+  h += '<div id="aw_content"></div>';
+  mc.innerHTML = h;
+}
+
+function awPhoneSearch(val) {
+  var phone = val.replace(/\D/g, '');
+  if (phone.length < 10) return;
+  phone = phone.slice(-10);
+  api.get(api.h('/patients?search=' + phone)).then(function(data) {
+    var patients = Array.isArray(data) ? data : (data.patients || []);
+    if (patients.length) { awSelectedPatient = patients[0]; awRenderWallet(patients[0]); }
+    else { document.getElementById('aw_content').innerHTML = '<div style="padding:16px;color:var(--mw-warning)">Patient not found</div>'; }
+  });
+}
+
+function awRenderWallet(patient) {
+  var wallet = parseFloat(patient.wallet_balance) || 0;
+  var h = '';
+  h += '<div class="bv2-wallet-card">';
+  h += '<div style="font-size:12px;color:var(--mw-text-2);font-weight:700;text-transform:uppercase;letter-spacing:1px">' + (patient.first_name || '') + ' ' + (patient.last_name || '') + ' — ' + t('billing.advance.balance') + '</div>';
+  h += '<div style="font-family:var(--mw-font-display);font-size:48px;font-weight:700;color:var(--mw-accent);margin:12px 0">₹' + wallet.toLocaleString('en-IN') + '</div>';
+  h += '<div style="display:flex;gap:10px;justify-content:center">';
+  h += '<button class="btn btn-primary btn-sm" style="background:var(--mw-accent);border-color:var(--mw-accent)" onclick="awOpenDeposit()">' + t('billing.advance.add') + '</button>';
+  h += '<button class="btn btn-outline btn-sm" onclick="awOpenRefund()">' + t('billing.advance.refund') + '</button>';
+  h += '</div></div>';
+
+  h += '<div class="bv2-card"><div class="bv2-card-title">Transaction history</div><div id="aw_transactions"><div style="padding:16px;color:var(--mw-text-3)">' + t('common.loading') + '</div></div></div>';
+  document.getElementById('aw_content').innerHTML = h;
+  awLoadTransactions(patient.patient_id || patient.id);
+}
+
+function awLoadTransactions(patientId) {
+  api.get(api.h('/wallet/transactions?patient_id=' + patientId)).then(function(data) {
+    var txns = Array.isArray(data) ? data : (data.transactions || []);
+    var area = document.getElementById('aw_transactions');
+    if (!txns.length) { area.innerHTML = '<div style="padding:16px;color:var(--mw-text-3)">No transactions yet</div>'; return; }
+    var h = '<table class="mw-table"><thead><tr><th>' + t('common.date') + '</th><th>' + t('common.type') + '</th><th>' + t('common.method') + '</th><th style="text-align:right">' + t('billing.amount') + '</th><th>' + t('common.balance') + '</th></tr></thead><tbody>';
+    for (var i = 0; i < txns.length; i++) {
+      var tx = txns[i];
+      var isCredit = tx.type === 'deposit' || tx.type === 'advance';
+      h += '<tr><td>' + (tx.created_at ? new Date(tx.created_at).toLocaleDateString('en-IN') : '—') + '</td>';
+      h += '<td><span style="display:inline-block;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600;' + (isCredit ? 'background:var(--mw-success-light);color:var(--mw-success)' : 'background:var(--mw-danger-light);color:var(--mw-danger)') + '">' + (tx.type || '—') + '</span></td>';
+      h += '<td>' + (tx.payment_method || '—') + '</td>';
+      h += '<td style="text-align:right;color:' + (isCredit ? 'var(--mw-success)' : 'var(--mw-danger)') + '">' + (isCredit ? '+' : '-') + '₹' + (parseFloat(tx.amount) || 0).toLocaleString('en-IN') + '</td>';
+      h += '<td>₹' + (parseFloat(tx.balance_after) || 0).toLocaleString('en-IN') + '</td></tr>';
+    }
+    h += '</tbody></table>';
+    area.innerHTML = h;
+  }).catch(function() { document.getElementById('aw_transactions').innerHTML = '<div style="color:var(--mw-danger)">Error loading transactions</div>'; });
+}
+
+function awOpenDeposit() {
+  if (!awSelectedPatient) return;
+  var h = '<div class="modal-title">' + t('billing.advance.add') + '<button class="modal-close" onclick="closeModal(\'advanceDepositModal\')">&times;</button></div>';
+  h += '<div style="margin-bottom:12px;font-size:14px;color:var(--mw-text-2)">Patient: <strong>' + (awSelectedPatient.first_name || '') + ' ' + (awSelectedPatient.last_name || '') + '</strong></div>';
+  h += '<div class="form-group"><label>' + t('billing.amount') + '</label><input type="number" id="aw_dep_amount" min="0" placeholder="Enter amount"></div>';
+  h += '<div class="form-group"><label>' + t('billing.payment_method') + '</label>';
+  h += '<select id="aw_dep_method" style="width:100%;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:8px;font-family:var(--mw-font)">';
+  h += '<option value="Cash">' + t('common.cash') + '</option><option value="Card">' + t('common.card') + '</option><option value="UPI">' + t('common.upi') + '</option><option value="Bank Transfer">' + t('common.bank_transfer') + '</option></select></div>';
+  h += '<div class="form-group"><label>' + t('common.notes') + '</label><input type="text" id="aw_dep_notes" placeholder="Optional notes"></div>';
+  h += '<button class="btn btn-primary" style="width:100%;padding:12px;background:var(--mw-accent);border-color:var(--mw-accent)" onclick="awSubmitDeposit()">' + t('billing.advance.add') + '</button>';
+  document.getElementById('advanceDepositModalBody').innerHTML = h;
+  openModal('advanceDepositModal');
+}
+
+function awSubmitDeposit() {
+  var amount = parseFloat(document.getElementById('aw_dep_amount').value) || 0;
+  if (amount <= 0) { showNotification('error', 'Invalid amount', 'Please enter a valid amount'); return; }
+  api.post(api.h('/payments/advance'), {
+    patient_id: awSelectedPatient.patient_id || awSelectedPatient.id,
+    amount: amount, payment_method: document.getElementById('aw_dep_method').value,
+    notes: document.getElementById('aw_dep_notes').value
+  }).then(function(d) {
+    showNotification('success', t('success.advance_deposited.title'),
+      t('success.advance_deposited.message', { amount: amount.toLocaleString('en-IN'), balance: (d.new_balance || 0).toLocaleString('en-IN') }));
+    closeModal('advanceDepositModal');
+    awSelectedPatient.wallet_balance = d.new_balance || (parseFloat(awSelectedPatient.wallet_balance || 0) + amount);
+    awRenderWallet(awSelectedPatient);
+  }).catch(function(e) { showNotification('error', 'Deposit failed', e.message); });
+}
+
+function awOpenRefund() {
+  if (!awSelectedPatient) return;
+  var wallet = parseFloat(awSelectedPatient.wallet_balance) || 0;
+  if (wallet <= 0) { showNotification('info', 'No balance', 'Wallet balance is zero'); return; }
+  var h = '<div class="modal-title">' + t('billing.advance.refund') + '<button class="modal-close" onclick="closeModal(\'advanceDepositModal\')">&times;</button></div>';
+  h += '<div style="margin-bottom:12px;font-size:14px;color:var(--mw-text-2)">Current balance: <strong style="color:var(--mw-accent)">₹' + wallet.toLocaleString('en-IN') + '</strong></div>';
+  h += '<div class="form-group"><label>' + t('billing.amount') + '</label><input type="number" id="aw_ref_amount" min="0" max="' + wallet + '" value="' + wallet + '"></div>';
+  h += '<div class="form-group"><label>' + t('common.notes') + '</label><input type="text" id="aw_ref_notes" placeholder="Reason for refund"></div>';
+  h += '<button class="btn btn-primary" style="width:100%;padding:12px;background:var(--mw-warning);border-color:var(--mw-warning)" onclick="awSubmitRefund()">' + t('billing.advance.refund') + '</button>';
+  document.getElementById('advanceDepositModalBody').innerHTML = h;
+  openModal('advanceDepositModal');
+}
+
+function awSubmitRefund() {
+  var amount = parseFloat(document.getElementById('aw_ref_amount').value) || 0;
+  if (amount <= 0) { showNotification('error', 'Invalid amount', 'Please enter a valid amount'); return; }
+  api.post(api.h('/wallet/refund'), {
+    patient_id: awSelectedPatient.patient_id || awSelectedPatient.id,
+    amount: amount, notes: document.getElementById('aw_ref_notes').value
+  }).then(function() {
+    showNotification('success', 'Refund processed', '₹' + amount.toLocaleString('en-IN') + ' refunded');
+    closeModal('advanceDepositModal');
+    awSelectedPatient.wallet_balance = (parseFloat(awSelectedPatient.wallet_balance || 0) - amount);
+    awRenderWallet(awSelectedPatient);
+  }).catch(function(e) { showNotification('error', 'Refund failed', e.message); });
+}
+
+/* ================================================================
+   BILLING V2 — Billing Settings
+   ================================================================ */
+function renderBillingSettingsScreen() {
+  var mc = document.getElementById('module-content');
+  mc.innerHTML = '<div style="padding:24px;text-align:center;color:var(--mw-text-3)">' + t('common.loading') + '</div>';
+  api.get(api.h('/billing-settings')).then(function(s) { bsRender(s || {}); }).catch(function() { bsRender({}); });
+}
+
+function bsRender(s) {
+  var mc = document.getElementById('module-content');
+  var h = '<div class="section-header"><div class="section-title">' + t('settings.billing') + '</div></div>';
+
+  // Print Preferences
+  h += '<div class="bv2-settings-section"><div class="bv2-settings-title">' + t('settings.billing.print') + '</div>';
+  h += '<div class="bv2-settings-row"><label>' + t('print.format') + '</label><select id="bs_format"><option value="a4"' + (s.print_format === 'a4' ? ' selected' : '') + '>' + t('print.a4') + '</option><option value="a5"' + (s.print_format === 'a5' ? ' selected' : '') + '>' + t('print.a5') + '</option><option value="thermal"' + (s.print_format === 'thermal' ? ' selected' : '') + '>' + t('print.thermal') + '</option></select></div>';
+  h += '<div class="bv2-settings-row"><label>' + t('print.style') + '</label><select id="bs_style"><option value="clean"' + (s.bill_style === 'clean' ? ' selected' : '') + '>' + t('print.clean') + '</option><option value="grid"' + (s.bill_style === 'grid' ? ' selected' : '') + '>' + t('print.grid') + '</option><option value="compact"' + (s.bill_style === 'compact' ? ' selected' : '') + '>' + t('print.compact') + '</option></select></div>';
+  h += '<div class="bv2-settings-row"><label>' + t('print.language') + '</label><select id="bs_language"><option value="en"' + (s.bill_language === 'en' ? ' selected' : '') + '>English only</option><option value="en+te"' + (s.bill_language === 'en+te' ? ' selected' : '') + '>English + Telugu</option><option value="te"' + (s.bill_language === 'te' ? ' selected' : '') + '>Telugu only</option></select></div>';
+  h += '</div>';
+
+  // QR Code
+  h += '<div class="bv2-settings-section"><div class="bv2-settings-title">' + t('settings.billing.qr') + '</div>';
+  h += bsToggleRow('bs_qr_bills', 'QR code on bills', s.qr_on_bills !== false);
+  h += bsToggleRow('bs_qr_rx', 'QR code on prescriptions', s.qr_on_prescriptions !== false);
+  h += bsToggleRow('bs_qr_lab', 'QR code on lab reports', s.qr_on_reports !== false);
+  h += bsToggleRow('bs_qr_emr', 'QR code on EMR summaries', s.qr_on_emr !== false);
+  h += '</div>';
+
+  // Tax & Compliance
+  h += '<div class="bv2-settings-section"><div class="bv2-settings-title">' + t('settings.billing.tax') + '</div>';
+  h += '<div class="bv2-settings-row"><label>GSTIN</label><input id="bs_gstin" value="' + (s.gstin || '') + '" placeholder="22AAAAA0000A1Z5"></div>';
+  h += '<div class="bv2-settings-row"><label>Registration number</label><input id="bs_reg" value="' + (s.reg_number || '') + '"></div>';
+  h += '<div class="bv2-settings-row"><label>SAC code</label><input id="bs_sac" value="' + (s.sac_code || '999312') + '"></div>';
+  h += '<div class="bv2-settings-row"><label>Default GST rate (%)</label><input id="bs_gst_rate" type="number" value="' + (s.default_gst_rate || 0) + '" min="0"></div>';
+  h += '<div class="bv2-settings-row"><label>Place of supply</label><input id="bs_pos" value="' + (s.place_of_supply || '36-Telangana') + '"></div>';
+  h += '</div>';
+
+  // Bill Content
+  h += '<div class="bv2-settings-section"><div class="bv2-settings-title">' + t('settings.billing.content') + '</div>';
+  h += '<div class="bv2-settings-row"><label>Hospital tagline</label><input id="bs_tagline" value="' + (s.tagline || '') + '" placeholder="Your health, our responsibility"></div>';
+  h += '<div class="bv2-settings-row"><label>Terms & conditions</label><textarea id="bs_terms">' + (s.terms || 'Thanks for visiting! Get well soon.') + '</textarea></div>';
+  h += '<div class="bv2-settings-row"><label>Authorized signatory</label><input id="bs_signatory" value="' + (s.signatory_name || '') + '"></div>';
+  h += '<div class="bv2-settings-row"><label>Bill number prefix</label><input id="bs_prefix" value="' + (s.bill_prefix || '') + '" placeholder="INV-"></div>';
+  h += '</div>';
+
+  // Wallet & Advance
+  h += '<div class="bv2-settings-section"><div class="bv2-settings-title">' + t('settings.billing.wallet') + '</div>';
+  h += bsToggleRow('bs_wallet_enabled', 'Enable wallet system', s.wallet_enabled !== false);
+  h += bsToggleRow('bs_wallet_auto', 'Auto-deduct from wallet', s.wallet_auto_deduct !== false);
+  h += '<div class="bv2-settings-row"><label>Minimum advance amount</label><input id="bs_min_advance" type="number" value="' + (s.min_advance || 0) + '" min="0"></div>';
+  h += '</div>';
+
+  h += '<div style="text-align:right;margin-top:16px"><button class="btn btn-primary" onclick="bsSave()">' + t('common.save') + ' ' + t('settings.billing') + '</button></div>';
+  mc.innerHTML = h;
+}
+
+function bsToggleRow(id, label, checked) {
+  return '<div class="bv2-settings-row"><label>' + label + '</label><label class="bv2-toggle"><input type="checkbox" id="' + id + '"' + (checked ? ' checked' : '') + '><span class="bv2-toggle-slider"></span></label></div>';
+}
+
+function bsSave() {
+  var body = {
+    print_format: document.getElementById('bs_format').value,
+    bill_style: document.getElementById('bs_style').value,
+    bill_language: document.getElementById('bs_language').value,
+    qr_on_bills: document.getElementById('bs_qr_bills').checked,
+    qr_on_prescriptions: document.getElementById('bs_qr_rx').checked,
+    qr_on_reports: document.getElementById('bs_qr_lab').checked,
+    qr_on_emr: document.getElementById('bs_qr_emr').checked,
+    gstin: document.getElementById('bs_gstin').value,
+    reg_number: document.getElementById('bs_reg').value,
+    sac_code: document.getElementById('bs_sac').value,
+    default_gst_rate: parseFloat(document.getElementById('bs_gst_rate').value) || 0,
+    place_of_supply: document.getElementById('bs_pos').value,
+    tagline: document.getElementById('bs_tagline').value,
+    terms: document.getElementById('bs_terms').value,
+    signatory_name: document.getElementById('bs_signatory').value,
+    bill_prefix: document.getElementById('bs_prefix').value,
+    wallet_enabled: document.getElementById('bs_wallet_enabled').checked,
+    wallet_auto_deduct: document.getElementById('bs_wallet_auto').checked,
+    min_advance: parseFloat(document.getElementById('bs_min_advance').value) || 0
+  };
+  api.post(api.h('/billing-settings'), body).then(function() {
+    showNotification('success', 'Settings saved', 'Billing settings updated successfully');
+  }).catch(function(e) { showNotification('error', 'Save failed', e.message); });
+}
+
+/* ================================================================
+   BILLING V2 — Enhance existing bill list with "Receive Payment" button
+   ================================================================ */
+var _origLoadBills = typeof loadBills === 'function' ? loadBills : null;
+(function() {
+  /* After bills load, add Receive Payment buttons to pending/partial rows */
+  var origRenderBillRow = window.renderBillRow;
+  /* We inject into the existing loadBills via a MutationObserver on the bill table */
+  var observer = new MutationObserver(function() {
+    var tbody = document.getElementById('billTableBody');
+    if (!tbody) return;
+    var rows = tbody.querySelectorAll('tr[data-bill-id]');
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      if (row.getAttribute('data-bv2-enhanced')) continue;
+      row.setAttribute('data-bv2-enhanced', '1');
+      var status = (row.getAttribute('data-bill-status') || '').toLowerCase();
+      if (status === 'pending' || status === 'partial') {
+        var actionsCell = row.querySelector('td:last-child');
+        if (actionsCell) {
+          var billId = row.getAttribute('data-bill-id');
+          var total = parseFloat(row.getAttribute('data-bill-total')) || 0;
+          var paid = parseFloat(row.getAttribute('data-bill-paid')) || 0;
+          var balance = parseFloat(row.getAttribute('data-bill-balance')) || 0;
+          var billNum = row.getAttribute('data-bill-number') || billId;
+          var btn = document.createElement('button');
+          btn.className = 'btn btn-sm';
+          btn.style.cssText = 'background:var(--mw-primary);color:#fff;border:none;margin-left:4px;font-size:11px';
+          btn.textContent = '₹ Receive';
+          btn.setAttribute('onclick', 'openReceivePayment("' + billId + '",' + total + ',' + paid + ',' + balance + ',"' + billNum + '")');
+          actionsCell.appendChild(btn);
+        }
+      }
+    }
+  });
+  /* Start observing once DOM is ready */
+  document.addEventListener('DOMContentLoaded', function() {
+    var tbody = document.getElementById('billTableBody');
+    if (tbody) observer.observe(tbody, { childList: true, subtree: true });
+  });
+})();
+
+/* ================================================================
+   BILLING V2 — Enhance existing saveBill to show amount in words
+   ================================================================ */
+var _origRecalcBill = typeof recalcBill === 'function' ? recalcBill : null;
+(function() {
+  /* After recalcBill runs, inject amount-in-words below total */
+  var origRecalc = window.recalcBill;
+  if (!origRecalc) return;
+  window.recalcBill = function() {
+    origRecalc.apply(this, arguments);
+    var totalEl = document.getElementById('billTotal');
+    if (!totalEl) return;
+    var totalVal = parseFloat((totalEl.textContent || '0').replace(/[^\d.]/g, '')) || 0;
+    var wordsEl = document.getElementById('billTotalWords');
+    if (!wordsEl) {
+      wordsEl = document.createElement('div');
+      wordsEl.id = 'billTotalWords';
+      wordsEl.style.cssText = 'font-size:11px;color:var(--mw-text-3);font-style:italic;margin-top:4px';
+      totalEl.parentElement.parentElement.appendChild(wordsEl);
+    }
+    wordsEl.textContent = amountInWords(totalVal);
+  };
+})();
 
 </script>
 </body>
