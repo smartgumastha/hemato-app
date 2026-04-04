@@ -7117,11 +7117,28 @@ function showColTab(tab) {
 function loadDailyCollection() {
   var date = document.getElementById('colDailyDate').value;
   if (!date) return;
-  /* Use local billCache to compute daily — no extra API needed */
+
+  api.get(api.h('/reports/collection?date=' + date))
+    .then(function(data) {
+      if (data && data.bills) {
+        renderDailyCollectionFromAPI(data);
+      } else if (data && Array.isArray(data)) {
+        renderDailyCollection(data);
+      } else {
+        loadDailyCollectionFallback(date);
+      }
+    })
+    .catch(function() {
+      loadDailyCollectionFallback(date);
+    });
+}
+
+function loadDailyCollectionFallback(date) {
   var dayStart = new Date(date).getTime();
   var dayEnd = dayStart + 86400000;
   var filtered = (billCache || []).filter(function(b) {
-    var ts = Number(b.created_at || 0); if (ts > 0 && ts < 9999999999) ts = ts * 1000;
+    var ts = Number(b.created_at || 0);
+    if (ts > 0 && ts < 9999999999) ts = ts * 1000;
     return ts >= dayStart && ts < dayEnd;
   });
   colDailyBills = filtered;
@@ -7181,9 +7198,73 @@ function renderDailyCollection(bills) {
   tbody.innerHTML = html;
 }
 
+function renderDailyCollectionFromAPI(data) {
+  var totalAmt = Number(data.total || 0);
+  var cashAmt = Number(data.cash || 0);
+  var upiAmt = Number(data.upi || 0);
+  var cardAmt = Number(data.card || 0);
+  var insAmt = Number(data.insurance || 0);
+  var walletAmt = Number(data.wallet || 0);
+  var billCount = Number(data.bill_count || (data.bills ? data.bills.length : 0));
+  var patientCount = Number(data.patient_count || 0);
+
+  document.getElementById('colTotalAmt').textContent = '\u20B9' + totalAmt.toLocaleString('en-IN');
+  document.getElementById('colCashAmt').textContent = '\u20B9' + cashAmt.toLocaleString('en-IN');
+  document.getElementById('colUpiAmt').textContent = '\u20B9' + upiAmt.toLocaleString('en-IN');
+  document.getElementById('colCardAmt').textContent = '\u20B9' + cardAmt.toLocaleString('en-IN');
+  document.getElementById('colInsAmt').textContent = '\u20B9' + (insAmt + walletAmt).toLocaleString('en-IN');
+  document.getElementById('colBillCount').textContent = String(billCount);
+  document.getElementById('colPatientCount').textContent = String(patientCount);
+
+  var bills = data.bills || [];
+  colDailyBills = bills;
+  var tbody = document.getElementById('colDailyTableBody');
+  if (!bills.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state" style="padding:30px"><div class="empty-state-text">No bills for this date</div></td></tr>';
+    return;
+  }
+  var html = '';
+  for (var j = 0; j < bills.length; j++) {
+    var bill = bills[j];
+    var payClass = getPayBadgeClass(bill.payment_mode || bill.payment_method);
+    var statusClass = getBillStatusClass(bill.payment_status);
+    var timeStr = '—';
+    if (bill.created_at) {
+      var tsVal = Number(bill.created_at);
+      if (tsVal > 0 && tsVal < 9999999999) tsVal = tsVal * 1000;
+      var d = new Date(tsVal);
+      timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    }
+    html += '<tr>';
+    html += '<td style="font-family:var(--mw-font-mono);font-size:12px;color:var(--mw-primary);cursor:pointer" onclick="viewBillDetail(\'' + String(bill.id || bill.bill_id) + '\')">' + (bill.bill_number || '—') + '</td>';
+    html += '<td>' + (bill.patient_name || 'Walk-in') + '</td>';
+    html += '<td style="text-align:right;font-weight:600">\u20B9' + Number(bill.total || bill.total_amount || 0).toLocaleString('en-IN') + '</td>';
+    html += '<td><span class="pay-badge ' + payClass + '">' + (bill.payment_mode || bill.payment_method || 'cash') + '</span></td>';
+    html += '<td><span class="pay-badge ' + statusClass + '">' + (bill.payment_status || 'paid') + '</span></td>';
+    html += '<td style="font-size:12px;color:var(--mw-text-3)">' + timeStr + '</td>';
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
 function loadMonthlyCollection() {
   var ym = document.getElementById('colMonthPicker').value;
   if (!ym) return;
+
+  api.get(api.h('/reports/collection?month=' + ym))
+    .then(function(data) {
+      if (data && (data.total !== undefined || data.days)) {
+        renderMonthlyCollectionFromAPI(data);
+      } else {
+        loadMonthlyCollectionFallback(ym);
+      }
+    })
+    .catch(function() {
+      loadMonthlyCollectionFallback(ym);
+    });
+}
+
+function loadMonthlyCollectionFallback(ym) {
   var parts = ym.split('-');
   var year = parseInt(parts[0]);
   var month = parseInt(parts[1]) - 1;
@@ -7246,6 +7327,36 @@ function loadMonthlyCollection() {
     html += '<td>\u20B9' + dd.card.toLocaleString('en-IN') + '</td>';
     html += '<td>\u20B9' + dd.insurance.toLocaleString('en-IN') + '</td>';
     html += '<td style="font-weight:700">\u20B9' + dd.total.toLocaleString('en-IN') + '</td>';
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function renderMonthlyCollectionFromAPI(data) {
+  document.getElementById('colMonthTotal').textContent = '\u20B9' + Number(data.total || 0).toLocaleString('en-IN');
+  document.getElementById('colMonthCash').textContent = '\u20B9' + Number(data.cash || 0).toLocaleString('en-IN');
+  document.getElementById('colMonthUpi').textContent = '\u20B9' + Number(data.upi || 0).toLocaleString('en-IN');
+  document.getElementById('colMonthCard').textContent = '\u20B9' + Number(data.card || 0).toLocaleString('en-IN');
+  document.getElementById('colMonthBills').textContent = String(data.bill_count || 0);
+  document.getElementById('colMonthPatients').textContent = String(data.patient_count || 0);
+
+  var days = data.days || [];
+  var tbody = document.getElementById('colMonthlyTableBody');
+  if (!days.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state" style="padding:30px"><div class="empty-state-text">No data for this month</div></td></tr>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < days.length; i++) {
+    var day = days[i];
+    html += '<tr>';
+    html += '<td style="font-weight:600;cursor:pointer;color:var(--mw-primary)" onclick="document.getElementById(\'colDailyDate\').value=\'' + (day.date || '') + '\';showColTab(\'daily\');loadDailyCollection()">' + (day.date || '—') + '</td>';
+    html += '<td style="text-align:right">' + (day.bill_count || 0) + '</td>';
+    html += '<td style="text-align:right">\u20B9' + Number(day.cash || 0).toLocaleString('en-IN') + '</td>';
+    html += '<td style="text-align:right">\u20B9' + Number(day.upi || 0).toLocaleString('en-IN') + '</td>';
+    html += '<td style="text-align:right">\u20B9' + Number(day.card || 0).toLocaleString('en-IN') + '</td>';
+    html += '<td style="text-align:right">\u20B9' + Number(day.insurance || 0).toLocaleString('en-IN') + '</td>';
+    html += '<td style="text-align:right;font-weight:600">\u20B9' + Number(day.total || 0).toLocaleString('en-IN') + '</td>';
     html += '</tr>';
   }
   tbody.innerHTML = html;
