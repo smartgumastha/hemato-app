@@ -7028,9 +7028,20 @@ function printBillHTML(printData) {
   var patRow3 = patAge ? '<div style="font-size:12px;"><strong>Age:</strong> ' + patAge + (typeof patAge === 'number' ? ' Yrs' : '') + '</div>' : '';
   var patRow4 = patGender ? '<div style="font-size:12px;"><strong>Sex:</strong> ' + patGender + '</div>' : '';
 
+  /* QR Code for bill verification */
+  var qrHash = printData.qr_hash || '';
+  var qrUrl = qrHash ? 'https://medihost.in/verify/' + qrHash : '';
+  var qrImgHtml = '';
+  if (qrHash) {
+    qrImgHtml = '<div style="position:absolute;top:12px;right:12px;text-align:center;">' +
+      '<img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=' + encodeURIComponent(qrUrl) + '" style="width:70px;height:70px;border:1px solid #ddd;border-radius:4px;" alt="QR">' +
+      '<div style="font-size:7px;color:#999;margin-top:2px;">Scan to verify</div>' +
+      '</div>';
+  }
+
   var html = '<!DOCTYPE html><html><head><title>Bill ' + billNumber + '</title>' +
     '<style>@media print { @page { size: ' + pageWidth + ' ' + pageHeight + '; margin: 8mm; } body { margin:0; } }</style>' +
-    '</head><body style="font-family:Arial,sans-serif;max-width:' + pageWidth + ';margin:0 auto;padding:12px;">' +
+    '</head><body style="font-family:Arial,sans-serif;max-width:' + pageWidth + ';margin:0 auto;padding:12px;position:relative;">' + qrImgHtml +
     '<div style="text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#333;margin-bottom:6px;">Tax Invoice</div>' +
     logoHtml +
     '<div style="text-align:center;font-size:16px;font-weight:700;margin-bottom:2px;">' + hospitalName + '</div>' +
@@ -7067,6 +7078,8 @@ function printBillHTML(printData) {
     (termsText ? '<div style="font-size:9px;color:#888;margin-top:8px;text-align:center;">' + termsText + '</div>' : '') +
     '<div style="font-size:11px;color:#333;text-align:center;margin-top:12px;font-style:italic;">' + footerText + '</div>' +
     gstinText + regText +
+    (qrUrl ? '<div style="text-align:center;margin-top:10px;padding-top:6px;border-top:1px dashed #ddd;"><div style="font-size:8px;color:#999;">Verify this bill at: ' + qrUrl + '</div></div>' : '') +
+    '<div style="text-align:center;margin-top:4px;font-size:8px;color:#ccc;">Powered by MediHost\u2122</div>' +
     '</body></html>';
 
   var win = window.open('', '_blank');
