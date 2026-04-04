@@ -14147,7 +14147,7 @@ function quickRegisterAndSelect() {
 function populateBillBranches() {
   var sel = document.getElementById('billBranchSelect');
   if (!sel) return;
-  var branches = (appState.hospital || {}).branches || [];
+  var branches = appState.branches || (appState.hospital || {}).branches || [];
   sel.innerHTML = '<option value="">Main Branch</option>';
   for (var i = 0; i < branches.length; i++) {
     var b = branches[i];
