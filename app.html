@@ -6981,12 +6981,14 @@ function printBillHTML(printData, overrides) {
   var paymentMode = printData.payment_mode || printData.paymentMode || 'Cash';
   var paymentStatus = printData.payment_status || 'pending';
   var wordsStr = amountInWords(total);
-  var terms = printData.terms || h.bill_terms || h.terms || 'Thanks for visiting! Get well soon.';
-  var signatory = h.signatory_name || h.signatory || '';
+  var billingSettings = h.billing_settings || {};
+  if (typeof billingSettings === 'string') { try { billingSettings = JSON.parse(billingSettings); } catch(e) { billingSettings = {}; } }
+  var terms = printData.terms || h.bill_terms || billingSettings.terms || h.terms || 'Thanks for visiting! Get well soon.';
+  var signatory = h.signatory_name || billingSettings.signatory_name || h.signatory || '';
   var hospitalName = h.name || h.business_name || (appState.loginData || {}).hospital_name || 'Hospital';
-  var tagline = h.tagline || '';
-  var gstin = h.gstin || '';
-  var regNum = h.reg_number || h.registration_number || '';
+  var tagline = h.tagline || billingSettings.tagline || '';
+  var gstin = h.gstin || billingSettings.gstin || '';
+  var regNum = h.reg_number || h.registration_number || billingSettings.reg_number || '';
 
   /* Address */
   var addrParts = [];
@@ -13528,6 +13530,13 @@ function bsRender(s) {
     '</div></div>';
   h += '<div class="bv2-settings-row"><label>Phone</label><input id="bs_phone" value="' + ((appState.hospital || {}).phone || '') + '" placeholder="Hospital phone"></div>';
   h += '<div class="bv2-settings-row"><label>Email</label><input id="bs_email" value="' + ((appState.hospital || {}).email || '') + '" placeholder="Hospital email"></div>';
+  h += '<div class="bv2-settings-row"><label>Tagline</label><input id="bs_tagline" value="' + (s.tagline || '').replace(/"/g, '&quot;') + '" placeholder="Your health, our responsibility"></div>';
+  h += '<div class="bv2-settings-row"><label>GSTIN</label><input id="bs_gstin" value="' + (s.gstin || '').replace(/"/g, '&quot;') + '" placeholder="e.g. 36AVIPP7778H1ZX" maxlength="15"></div>';
+  h += '<div class="bv2-settings-row"><label>Registration No.</label><input id="bs_reg" value="' + (s.reg_number || '').replace(/"/g, '&quot;') + '" placeholder="e.g. 2559(MDCL)"></div>';
+  h += '<div class="bv2-settings-row"><label>Authorized Signatory</label><input id="bs_signatory" value="' + (s.signatory_name || '').replace(/"/g, '&quot;') + '" placeholder="e.g. Dr. Sai Charan"></div>';
+  h += '<div class="bv2-settings-row"><label>Bill Number Prefix</label><input id="bs_prefix" value="' + (s.bill_number_prefix || s.bill_prefix || '').replace(/"/g, '&quot;') + '" placeholder="e.g. SCH, MH" maxlength="10"></div>';
+  h += '<div class="bv2-settings-row" style="flex-direction:column;align-items:flex-start;gap:4px;"><label>Terms & Conditions</label>';
+  h += '<textarea id="bs_terms" rows="3" style="width:100%;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:8px;font-size:13px;resize:none">' + (s.terms || 'Thanks for visiting! Get well soon.') + '</textarea></div>';
   h += '</div>';
 
   // Print Preferences
@@ -13547,19 +13556,9 @@ function bsRender(s) {
 
   // Tax & Compliance
   h += '<div class="bv2-settings-section"><div class="bv2-settings-title">' + t('settings.billing.tax') + '</div>';
-  h += '<div class="bv2-settings-row"><label>GSTIN</label><input id="bs_gstin" value="' + (s.gstin || '') + '" placeholder="22AAAAA0000A1Z5"></div>';
-  h += '<div class="bv2-settings-row"><label>Registration number</label><input id="bs_reg" value="' + (s.reg_number || '') + '"></div>';
   h += '<div class="bv2-settings-row"><label>SAC code</label><input id="bs_sac" value="' + (s.sac_code || '999312') + '"></div>';
   h += '<div class="bv2-settings-row"><label>Default GST rate (%)</label><input id="bs_gst_rate" type="number" value="' + (s.default_gst_rate || 0) + '" min="0"></div>';
   h += '<div class="bv2-settings-row"><label>Place of supply</label><input id="bs_pos" value="' + (s.place_of_supply || '36-Telangana') + '"></div>';
-  h += '</div>';
-
-  // Bill Content
-  h += '<div class="bv2-settings-section"><div class="bv2-settings-title">' + t('settings.billing.content') + '</div>';
-  h += '<div class="bv2-settings-row"><label>Hospital tagline</label><input id="bs_tagline" value="' + (s.tagline || '') + '" placeholder="Your health, our responsibility"></div>';
-  h += '<div class="bv2-settings-row"><label>Terms & conditions</label><textarea id="bs_terms">' + (s.terms || 'Thanks for visiting! Get well soon.') + '</textarea></div>';
-  h += '<div class="bv2-settings-row"><label>Authorized signatory</label><input id="bs_signatory" value="' + (s.signatory_name || '') + '"></div>';
-  h += '<div class="bv2-settings-row"><label>Bill number prefix</label><input id="bs_prefix" value="' + (s.bill_prefix || '') + '" placeholder="INV-"></div>';
   h += '</div>';
 
   // Wallet & Advance
@@ -13589,10 +13588,16 @@ function bsPreviewLogo(input) {
   }
   var reader = new FileReader();
   reader.onload = function(e) {
-    preview.innerHTML = '<img src="' + e.target.result + '" style="max-height:40px;max-width:160px;border:1px solid var(--mw-border);border-radius:6px;">';
+    var base64 = e.target.result;
+    preview.innerHTML = '<img src="' + base64 + '" style="max-height:40px;max-width:160px;border:1px solid var(--mw-border);border-radius:6px;">';
+    /* Store in appState for immediate use in bill printing */
+    if (!appState.hospital) appState.hospital = {};
+    appState.hospital.logo_url = base64;
+    appState.hospital.logo = base64;
   };
   reader.readAsDataURL(file);
 }
+var bsUploadLogo = bsPreviewLogo;
 
 function bsSave() {
   var body = {
@@ -13612,6 +13617,7 @@ function bsSave() {
     terms: document.getElementById('bs_terms').value,
     signatory_name: document.getElementById('bs_signatory').value,
     bill_prefix: document.getElementById('bs_prefix').value,
+    bill_number_prefix: document.getElementById('bs_prefix').value,
     wallet_enabled: document.getElementById('bs_wallet_enabled').checked,
     wallet_auto_deduct: document.getElementById('bs_wallet_auto').checked,
     min_advance: parseFloat(document.getElementById('bs_min_advance').value) || 0,
