@@ -4197,9 +4197,14 @@ function savePatient() {
   }
 
   var phoneVal = document.getElementById('patientPhone').value.replace(/[^0-9]/g, '');
-  if (phoneVal && (phoneVal.length !== 10 || !/^[6-9]/.test(phoneVal))) {
+  if (!phoneVal) {
     switchPatientTab('basic');
     showNotification('error', t('error.phone_required.title'), t('error.phone_required.message'), { field: 'patientPhone' });
+    return;
+  }
+  if (phoneVal.length !== 10 || !/^[6-9]/.test(phoneVal)) {
+    switchPatientTab('basic');
+    showNotification('error', t('error.phone_required.title'), 'Invalid phone. Must be 10 digits starting with 6-9.', { field: 'patientPhone' });
     return;
   }
 
@@ -4249,7 +4254,7 @@ function savePatient() {
         handleApiError(data);
         return;
       }
-      var newPatient = data.patient || data;
+      var newPatient = data.data || data.patient || data;
       var pid = String(newPatient.patient_id || newPatient.id || '');
       /* Get UHID from backend response */
       var uhid = newPatient.uhid || newPatient.UHID || newPatient.uhid_number ||
@@ -4282,7 +4287,11 @@ function savePatient() {
       switchPatientTab('basic'); /* Reset to first tab */
     })
     .catch(function(err) {
-      showNotification('error', t('error.server_error.title'), t('error.server_error.message'));
+      if (err && err.error) {
+        handleApiError(err);
+      } else {
+        showNotification('error', t('error.server_error.title'), t('error.server_error.message'));
+      }
     });
 }
 
