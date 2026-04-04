@@ -13008,7 +13008,7 @@ function abPrint(docType, docId) {
   var fmt = document.getElementById('ab_printFormat').value;
   var style = document.getElementById('ab_printStyle').value;
   var lang = document.getElementById('ab_printLang').value;
-  var url = API_BASE + '/api/' + docType + 's/' + docId + '/print?format=' + fmt + '&style=' + style + '&language=' + lang;
+  var url = API_BASE + '/' + docType + 's/' + docId + '/print?format=' + fmt + '&style=' + style + '&language=' + lang;
   var w = window.open(url, '_blank');
   if (w) { w.onload = function() { w.print(); }; }
 }
@@ -13025,7 +13025,7 @@ function abPDF(docType, docId) {
   var fmt = document.getElementById('ab_printFormat').value;
   var style = document.getElementById('ab_printStyle').value;
   var lang = document.getElementById('ab_printLang').value;
-  window.open(API_BASE + '/api/' + docType + 's/' + docId + '/print?format=' + fmt + '&style=' + style + '&language=' + lang + '&download=1', '_blank');
+  window.open(API_BASE + '/' + docType + 's/' + docId + '/print?format=' + fmt + '&style=' + style + '&language=' + lang + '&download=1', '_blank');
 }
 
 function abEmail(docType, docId, email) {
