@@ -1347,6 +1347,13 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
       <div class="top-bar-spacer"></div>
       <div class="top-bar-hospital" id="topBarHospital">—</div>
       <div class="top-bar-plan" id="topBarPlan">—</div>
+      <div style="position:relative">
+        <div id="langToggleBtn" onclick="toggleLangDropdown()" style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,0.15);cursor:pointer;font-size:12px;color:#fff;border:1px solid rgba(255,255,255,0.25)">
+          <span id="currentLangLabel">EN</span>
+          <span style="font-size:10px;opacity:0.7">&#9662;</span>
+        </div>
+        <div id="langDropdown" style="display:none;position:absolute;top:100%;right:0;margin-top:6px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;min-width:200px;max-height:300px;overflow-y:auto;z-index:10001;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>
+      </div>
       <button class="btn btn-ghost btn-sm" onclick="doLogout()">Logout</button>
     </header>
 
@@ -3127,6 +3134,132 @@ function handleApiError(response) {
 }
 
 /* ===========================================================
+   LANGUAGE TOGGLE + FIRST-LOGIN LANGUAGE PICKER
+   =========================================================== */
+function toggleLangDropdown() {
+  var dd = document.getElementById('langDropdown');
+  if (dd.style.display === 'none') {
+    var html = '';
+    for (var i = 0; i < LANGUAGES.length; i++) {
+      var lang = LANGUAGES[i];
+      var isActive = lang.code === appLang;
+      html += '<div onclick="selectLanguage(\'' + lang.code + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;cursor:pointer;font-size:13px;' + (isActive ? 'background:#f0fdf4;' : '') + '" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'' + (isActive ? '#f0fdf4' : '') + '\'">';
+      html += '<div><div style="font-weight:500;color:#1e293b">' + lang.nativeName + '</div><div style="font-size:11px;color:#94a3b8">' + lang.name + '</div></div>';
+      if (isActive) html += '<span style="color:#059669;font-size:16px">&#10003;</span>';
+      html += '</div>';
+    }
+    dd.innerHTML = html;
+    dd.style.display = 'block';
+    /* Close on outside click */
+    setTimeout(function() {
+      document.addEventListener('click', closeLangDropdownOutside);
+    }, 0);
+  } else {
+    dd.style.display = 'none';
+  }
+}
+
+function closeLangDropdownOutside(e) {
+  var dd = document.getElementById('langDropdown');
+  var btn = document.getElementById('langToggleBtn');
+  if (dd && btn && !dd.contains(e.target) && !btn.contains(e.target)) {
+    dd.style.display = 'none';
+    document.removeEventListener('click', closeLangDropdownOutside);
+  }
+}
+
+function selectLanguage(code) {
+  document.getElementById('langDropdown').style.display = 'none';
+  document.removeEventListener('click', closeLangDropdownOutside);
+  loadLanguage(code).then(function() {
+    var langInfo = LANGUAGES.find(function(l) { return l.code === code; });
+    var labelEl = document.getElementById('currentLangLabel');
+    if (labelEl && langInfo) labelEl.textContent = langInfo.label;
+    /* Re-render sidebar and current screen title */
+    if (typeof renderSidebar === 'function') renderSidebar();
+  });
+}
+
+function updateLangToggleLabel() {
+  var langInfo = LANGUAGES.find(function(l) { return l.code === appLang; });
+  var labelEl = document.getElementById('currentLangLabel');
+  if (labelEl && langInfo) labelEl.textContent = langInfo.label;
+}
+
+function showFirstLoginLanguagePicker(staffId, staffName) {
+  var overlay = document.createElement('div');
+  overlay.id = 'firstLoginLangPicker';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;z-index:10002;display:flex;align-items:center;justify-content:center;';
+
+  var container = document.createElement('div');
+  container.style.cssText = 'max-width:460px;width:90%;text-align:center;';
+
+  var selectedCode = 'en';
+
+  var titleHtml = '<div style="font-size:16px;font-weight:600;color:#1e293b;margin-bottom:6px">' + t('language.choose_title') + '</div>';
+  titleHtml += '<div style="font-size:13px;color:#64748b;margin-bottom:24px">' + t('language.choose_subtitle') + '</div>';
+  container.innerHTML = titleHtml;
+
+  var grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;';
+
+  for (var i = 0; i < LANGUAGES.length; i++) {
+    (function(lang) {
+      var card = document.createElement('div');
+      card.style.cssText = 'padding:14px 12px;border-radius:10px;border:2px solid ' + (lang.code === selectedCode ? '#059669' : '#e2e8f0') + ';cursor:pointer;text-align:center;background:#fff;transition:border-color 0.15s;';
+      card.innerHTML = '<div style="font-size:18px;font-weight:600;color:#1e293b;margin-bottom:2px">' + lang.nativeName + '</div>' +
+        '<div style="font-size:12px;color:#94a3b8">' + lang.name + '</div>' +
+        '<div style="margin-top:6px">' + (lang.code === selectedCode ? '<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:#059669;border:2px solid #059669"></span>' : '<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #cbd5e1"></span>') + '</div>';
+      card.onclick = function() {
+        selectedCode = lang.code;
+        /* Re-render all cards */
+        var cards = grid.children;
+        for (var c = 0; c < cards.length; c++) {
+          var cc = LANGUAGES[c].code;
+          cards[c].style.borderColor = (cc === selectedCode) ? '#059669' : '#e2e8f0';
+          var radio = cards[c].querySelector('span[style*="border-radius:50%"]');
+          if (radio) {
+            radio.style.background = (cc === selectedCode) ? '#059669' : '#fff';
+            radio.style.borderColor = (cc === selectedCode) ? '#059669' : '#cbd5e1';
+          }
+        }
+        /* Update button text */
+        var langName = LANGUAGES.find(function(l) { return l.code === selectedCode; });
+        continueBtn.textContent = t('language.continue_in', { language: langName ? langName.nativeName : 'English' });
+      };
+      grid.appendChild(card);
+    })(LANGUAGES[i]);
+  }
+  container.appendChild(grid);
+
+  var continueBtn = document.createElement('button');
+  continueBtn.style.cssText = 'width:100%;padding:12px;border-radius:8px;background:#059669;color:#fff;font-size:14px;font-weight:500;border:none;cursor:pointer;height:44px;margin-bottom:10px;';
+  continueBtn.textContent = t('language.continue_in', { language: 'English' });
+  continueBtn.onclick = function() {
+    /* Save to backend */
+    if (staffId) {
+      api.put('/staff/' + staffId, { preferred_language: selectedCode }).catch(function() {});
+    }
+    localStorage.setItem('hemato_lang', selectedCode);
+    localStorage.setItem('hemato_lang_chosen', 'true');
+    loadLanguage(selectedCode).then(function() {
+      overlay.remove();
+      updateLangToggleLabel();
+      if (typeof renderSidebar === 'function') renderSidebar();
+    });
+  };
+  container.appendChild(continueBtn);
+
+  var hint = document.createElement('div');
+  hint.style.cssText = 'font-size:12px;color:#94a3b8;';
+  hint.textContent = t('language.change_anytime');
+  container.appendChild(hint);
+
+  overlay.appendChild(container);
+  document.body.appendChild(overlay);
+}
+
+/* ===========================================================
    AUTH FUNCTIONS
    =========================================================== */
 function showAuthPanel(panelId) {
@@ -3400,10 +3533,19 @@ function loadApp() {
 
       /* Render the UI */
       renderUserInfo();
+      updateLangToggleLabel();
       renderSidebar();
       renderDashboard();
       renderSettingsModules();
       showScreen('screenDashboard');
+
+      /* First-login language picker — show if staff hasn't chosen a language yet */
+      var langChosen = localStorage.getItem('hemato_lang_chosen');
+      if (!langChosen) {
+        var staffId = appState.user ? (appState.user.userid || appState.user.user_id || '') : '';
+        var staffName = appState.user ? ((appState.user.first_name || '') + ' ' + (appState.user.last_name || '')).trim() : '';
+        showFirstLoginLanguagePicker(staffId, staffName);
+      }
     })
     .catch(function(err) {
       console.error('Failed to load app:', err);
