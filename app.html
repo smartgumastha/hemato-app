@@ -2271,43 +2271,43 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
 
     <!-- Tab navigation -->
     <div style="display:flex;gap:2px;background:var(--mw-bg);border-radius:var(--mw-radius);padding:4px;margin-bottom:16px">
-      <button class="patient-form-tab active" data-tab="basic" onclick="switchPatientTab('basic')">Basic Info</button>
-      <button class="patient-form-tab" data-tab="address" onclick="switchPatientTab('address')">Address</button>
-      <button class="patient-form-tab" data-tab="emergency" onclick="switchPatientTab('emergency')">Emergency</button>
-      <button class="patient-form-tab" data-tab="abha" onclick="switchPatientTab('abha')">ABHA / ID</button>
+      <button class="patient-form-tab active" data-tab="basic" id="patientTabBasicBtn" onclick="switchPatientTab('basic')">Basic Info</button>
+      <button class="patient-form-tab" data-tab="address" id="patientTabAddressBtn" onclick="switchPatientTab('address')">Address</button>
+      <button class="patient-form-tab" data-tab="emergency" id="patientTabEmergencyBtn" onclick="switchPatientTab('emergency')">Emergency</button>
+      <button class="patient-form-tab" data-tab="abha" id="patientTabAbhaBtn" onclick="switchPatientTab('abha')">ABHA / ID</button>
     </div>
 
     <!-- Tab 1: Basic Info -->
     <div id="patientTab-basic" class="patient-tab-content">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
         <div class="form-group">
-          <label>First Name *</label>
+          <label id="lblFirstName">First Name *</label>
           <input type="text" id="patientFirstName" placeholder="First name">
         </div>
         <div class="form-group">
-          <label>Middle Name</label>
+          <label id="lblMiddleName">Middle Name</label>
           <input type="text" id="patientMiddleName" placeholder="Middle name">
         </div>
         <div class="form-group">
-          <label>Last Name</label>
+          <label id="lblLastName">Last Name</label>
           <input type="text" id="patientLastName" placeholder="Last name">
         </div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-group">
-          <label>Date of Birth <span style="color:#6B7280;font-weight:400;font-size:11px">(auto-calculates age)</span></label>
+          <label id="lblDob">Date of Birth <span style="color:#6B7280;font-weight:400;font-size:11px">(auto-calculates age)</span></label>
           <input type="date" id="patientDOB" onchange="autoCalcAge()" max="">
         </div>
         <div class="form-group">
-          <label>Age <span style="color:#6B7280;font-weight:400;font-size:11px">(years)</span></label>
+          <label id="lblAge">Age <span style="color:#6B7280;font-weight:400;font-size:11px">(years)</span></label>
           <input type="number" id="patientAge" min="0" max="150" placeholder="Age in years">
         </div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-group">
-          <label>Gender</label>
+          <label id="lblGender">Gender</label>
           <select id="patientGender">
             <option value="male">Male</option>
             <option value="female">Female</option>
@@ -2316,7 +2316,7 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
           </select>
         </div>
         <div class="form-group">
-          <label>Blood Group</label>
+          <label id="lblBloodGroup">Blood Group</label>
           <select id="patientBloodGroup">
             <option value="unknown">Unknown</option>
             <option value="A+">A+</option><option value="A-">A-</option>
@@ -2328,7 +2328,7 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
       </div>
 
       <div class="form-group">
-        <label>Phone Number <span style="color:#6B7280;font-weight:400;font-size:11px">(10 digits, India)</span></label>
+        <label id="lblPhone">Phone Number <span style="color:#6B7280;font-weight:400;font-size:11px">(10 digits, India)</span></label>
         <div style="display:flex;align-items:stretch">
           <span style="display:flex;align-items:center;padding:0 10px;background:var(--mw-bg);border:1px solid var(--mw-border);border-right:none;border-radius:var(--mw-radius) 0 0 var(--mw-radius);font-size:13px;color:var(--mw-text-2)">+91</span>
           <input type="tel" id="patientPhone" placeholder="9876543210" maxlength="10" pattern="[6-9][0-9]{9}" style="border-radius:0 var(--mw-radius) var(--mw-radius) 0;flex:1" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" onblur="validatePhoneField(this)">
@@ -2338,13 +2338,30 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-group">
-          <label>Email <span style="color:#6B7280;font-weight:400;font-size:11px">(optional)</span></label>
+          <label id="lblEmail">Email <span style="color:#6B7280;font-weight:400;font-size:11px">(optional)</span></label>
           <input type="email" id="patientEmail" placeholder="patient@email.com">
         </div>
         <div class="form-group">
-          <label>Occupation</label>
+          <label id="lblOccupation">Occupation</label>
           <input type="text" id="patientOccupation" placeholder="e.g. Farmer, Teacher, Business">
         </div>
+      </div>
+
+      <div class="form-group">
+        <label id="lblPreferredLanguage">Patient's preferred language</label>
+        <select id="patientPreferredLanguage" style="border:1.5px solid #059669;background:#f0fdf4">
+          <option value="en">English — English</option>
+          <option value="hi">हिन्दी — Hindi</option>
+          <option value="bn">বাংলা — Bengali</option>
+          <option value="mr">मराठी — Marathi</option>
+          <option value="te">తెలుగు — Telugu</option>
+          <option value="ta">தமிழ் — Tamil</option>
+          <option value="gu">ગુજરાતી — Gujarati</option>
+          <option value="ur">اردو — Urdu</option>
+          <option value="kn">ಕನ್ನಡ — Kannada</option>
+          <option value="ml">മലയാളം — Malayalam</option>
+        </select>
+        <div id="lblLangHint" style="font-size:11px;color:var(--mw-text-3);margin-top:4px">This language will be used for prescriptions, bills, and WhatsApp messages to this patient</div>
       </div>
     </div>
 
@@ -2473,7 +2490,7 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
     </div>
 
     <div class="modal-actions" style="margin-top:16px">
-      <button class="btn btn-outline" onclick="closeModal('addPatientModal')">Cancel</button>
+      <button class="btn btn-outline" id="cancelPatientBtn" onclick="closeModal('addPatientModal')">Cancel</button>
       <button class="btn btn-primary" style="width:auto" id="savePatientBtn" onclick="savePatient()">Register Patient</button>
     </div>
   </div>
@@ -3175,8 +3192,9 @@ function selectLanguage(code) {
     var langInfo = LANGUAGES.find(function(l) { return l.code === code; });
     var labelEl = document.getElementById('currentLangLabel');
     if (labelEl && langInfo) labelEl.textContent = langInfo.label;
-    /* Re-render sidebar and current screen title */
+    /* Re-render sidebar, form labels, and current screen */
     if (typeof renderSidebar === 'function') renderSidebar();
+    if (typeof initPatientFormLabels === 'function') initPatientFormLabels();
   });
 }
 
@@ -3534,6 +3552,7 @@ function loadApp() {
       /* Render the UI */
       renderUserInfo();
       updateLangToggleLabel();
+      initPatientFormLabels();
       renderSidebar();
       renderDashboard();
       renderSettingsModules();
@@ -4038,6 +4057,40 @@ function validatePhoneField(input) {
   }
 }
 
+/* ── i18n labels for patient registration form ─────────────────────────── */
+function initPatientFormLabels() {
+  var map = {
+    'addPatientModalTitle': t('patient.register.title'),
+    'patientTabBasicBtn': t('patient.register.tab.basic_info'),
+    'patientTabAddressBtn': t('patient.register.tab.address'),
+    'patientTabEmergencyBtn': t('patient.register.tab.emergency'),
+    'patientTabAbhaBtn': t('patient.register.tab.abha_id'),
+    'lblFirstName': t('patient.register.label.first_name') + ' *',
+    'lblMiddleName': t('patient.register.label.middle_name'),
+    'lblLastName': t('patient.register.label.last_name'),
+    'lblGender': t('patient.register.label.gender'),
+    'lblBloodGroup': t('patient.register.label.blood_group'),
+    'lblEmail': t('patient.register.label.email'),
+    'lblOccupation': t('patient.register.label.occupation'),
+    'lblPreferredLanguage': t('patient.register.label.preferred_language'),
+    'cancelPatientBtn': t('patient.register.button.cancel'),
+    'savePatientBtn': t('patient.register.button.register'),
+    'lblLangHint': t('language.patient_language_hint')
+  };
+  var keys = Object.keys(map);
+  for (var i = 0; i < keys.length; i++) {
+    var el = document.getElementById(keys[i]);
+    if (el) el.textContent = map[keys[i]];
+  }
+  /* Labels with HTML spans */
+  var dobEl = document.getElementById('lblDob');
+  if (dobEl) dobEl.innerHTML = t('patient.register.label.dob');
+  var ageEl = document.getElementById('lblAge');
+  if (ageEl) ageEl.innerHTML = t('patient.register.label.age');
+  var phoneEl = document.getElementById('lblPhone');
+  if (phoneEl) phoneEl.innerHTML = t('patient.register.label.phone');
+}
+
 /* ── Tab switcher for registration modal ────────────────────────────────── */
 function switchPatientTab(tab) {
   var tabs = ['basic', 'address', 'emergency', 'abha'];
@@ -4082,29 +4135,25 @@ function savePatient() {
   var firstName = document.getElementById('patientFirstName').value.trim();
   if (!firstName) {
     switchPatientTab('basic');
-    showToast('Please enter patient first name', 'error');
-    document.getElementById('patientFirstName').focus();
+    showNotification('error', t('error.name_required.title'), t('error.name_required.message'), { field: 'patientFirstName' });
     return;
   }
 
   var phoneVal = document.getElementById('patientPhone').value.replace(/[^0-9]/g, '');
   if (phoneVal && (phoneVal.length !== 10 || !/^[6-9]/.test(phoneVal))) {
     switchPatientTab('basic');
-    showToast('Enter a valid 10-digit Indian mobile number', 'error');
-    var phoneInput = document.getElementById('patientPhone');
-    if (phoneInput) { phoneInput.style.borderColor = '#EF4444'; phoneInput.focus(); }
-    var errEl = document.getElementById('patientPhoneError');
-    if (errEl) errEl.style.display = 'block';
+    showNotification('error', t('error.phone_required.title'), t('error.phone_required.message'), { field: 'patientPhone' });
     return;
   }
 
   var abhaRaw = document.getElementById('patientABHA').value.replace(/[^0-9]/g, '');
   if (abhaRaw && abhaRaw.length !== 14) {
     switchPatientTab('abha');
-    showToast('ABHA ID must be 14 digits', 'error');
+    showNotification('error', 'ABHA ID invalid', 'ABHA ID must be 14 digits', { field: 'patientABHA' });
     return;
   }
 
+  var prefLangEl = document.getElementById('patientPreferredLanguage');
   var body = {
     first_name:   firstName,
     middle_name:  document.getElementById('patientMiddleName').value.trim() || null,
@@ -4116,6 +4165,7 @@ function savePatient() {
     phone:        phoneVal || null,
     email:        document.getElementById('patientEmail').value.trim() || null,
     occupation:   document.getElementById('patientOccupation').value.trim() || null,
+    preferred_language: prefLangEl ? prefLangEl.value : 'en',
     /* Address */
     address_line1: document.getElementById('patientAddress1').value.trim() || null,
     address_line2: document.getElementById('patientAddress2').value.trim() || null,
@@ -4138,6 +4188,10 @@ function savePatient() {
 
   api.post(api.h('/patients'), body)
     .then(function(data) {
+      if (data && data.success === false) {
+        handleApiError(data);
+        return;
+      }
       var newPatient = data.patient || data;
       var pid = String(newPatient.patient_id || newPatient.id || '');
       /* Get UHID from backend response */
@@ -4148,7 +4202,7 @@ function savePatient() {
       console.log('[MediWhats] All fields returned:', Object.keys(newPatient).join(', '));
       /* Session cache — shows UHID immediately without waiting for list reload */
       if (pid && uhid) localUhidMap[pid] = uhid;
-      showToast('Patient registered!' + (uhid ? ' UHID: ' + uhid : ' (UHID will appear after page refresh — check backend)'), 'success');
+      showNotification('success', t('success.patient_registered.title'), t('success.patient_registered.message', { uhid: uhid || pid }));
       closeModal('addPatientModal');
       loadPatients(); /* Re-fetch from backend — shows real UHID from DB */
       /* Update dashboard stat */
@@ -4163,7 +4217,7 @@ function savePatient() {
         var el = document.getElementById(clearIds[ci]);
         if (el) el.value = '';
       }
-      var selIds = ['patientGender','patientBloodGroup','patientState','patientEmgRelation','patientInsurance'];
+      var selIds = ['patientGender','patientBloodGroup','patientState','patientEmgRelation','patientInsurance','patientPreferredLanguage'];
       for (var si = 0; si < selIds.length; si++) {
         var sel = document.getElementById(selIds[si]);
         if (sel) sel.selectedIndex = 0;
@@ -4171,7 +4225,7 @@ function savePatient() {
       switchPatientTab('basic'); /* Reset to first tab */
     })
     .catch(function(err) {
-      showToast('Failed to register patient: ' + err.message, 'error');
+      showNotification('error', t('error.server_error.title'), t('error.server_error.message'));
     });
 }
 
