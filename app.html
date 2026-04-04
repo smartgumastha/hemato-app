@@ -2929,7 +2929,17 @@ var api = {
           throw new Error('Endpoint not found: ' + path);
         }
         return res.json().then(function(resp) {
-          if (!res.ok) throw new Error(resp.error || resp.message || 'Request failed (status ' + res.status + ')');
+          if (!res.ok) {
+            var errMsg = 'Request failed (status ' + res.status + ')';
+            if (resp.error && typeof resp.error === 'object') {
+              errMsg = resp.error.message || resp.error.title || errMsg;
+            } else if (typeof resp.error === 'string') {
+              errMsg = resp.error;
+            } else if (typeof resp.message === 'string') {
+              errMsg = resp.message;
+            }
+            throw new Error(errMsg);
+          }
           /* Auto-unwrap backend's standard { success, data: {...} } wrapper */
           var data = resp.data || resp;
           console.log('[API ' + method + ' ' + path + ']', JSON.stringify(data).substring(0, 200));
@@ -8707,16 +8717,16 @@ function getRoleModules() {
   // Physio hospitals (from rightphysio.in) get a trimmed module set
   if (roleKey === 'HOSPITAL_ADMIN' && appState.rpFrom) roleKey = 'HOSPITAL_ADMIN_PHYSIO';
   var all = {
-    SUPER_ADMIN:           ['dashboard','patients','appointments','queue','doctor_dashboard','billing','emr','nurse_triage','pharmacy','lis','tat_dashboard','analytics','settings','staff','platform'],
-    HOSPITAL_ADMIN:        ['dashboard','patients','appointments','queue','doctor_dashboard','billing','emr','nurse_triage','pharmacy','lis','tat_dashboard','settings','staff'],
-    HOSPITAL_ADMIN_PHYSIO: ['dashboard','patients','billing','appointments','queue','nurse_triage','doctor_dashboard','emr','staff','settings'],
-    MANAGER:               ['dashboard','patients','appointments','queue','doctor_dashboard','billing','tat_dashboard','settings'],
-    RECEPTIONIST:          ['patients','appointments','queue','billing','settings'],
+    SUPER_ADMIN:           ['dashboard','patients','appointments','queue','doctor_dashboard','billing','patient_ledger','advance_wallet','billing_settings','collections','emr','nurse_triage','pharmacy','lis','tat_dashboard','analytics','settings','staff','platform'],
+    HOSPITAL_ADMIN:        ['dashboard','patients','appointments','queue','doctor_dashboard','billing','patient_ledger','advance_wallet','billing_settings','collections','emr','nurse_triage','pharmacy','lis','tat_dashboard','settings','staff'],
+    HOSPITAL_ADMIN_PHYSIO: ['dashboard','patients','billing','patient_ledger','advance_wallet','billing_settings','collections','appointments','queue','nurse_triage','doctor_dashboard','emr','staff','settings'],
+    MANAGER:               ['dashboard','patients','appointments','queue','doctor_dashboard','billing','patient_ledger','advance_wallet','billing_settings','collections','tat_dashboard','settings'],
+    RECEPTIONIST:          ['patients','appointments','queue','billing','patient_ledger','advance_wallet','collections','settings'],
     DOCTOR:                ['doctor_dashboard','emr','patients','settings'],
     NURSE:                 ['nurse_triage','patients','settings'],
     IPD_NURSE:             ['nurse_triage','patients','ipd','settings'],
     PHARMACIST:            ['pharmacy','patients','settings'],
-    BILLING:               ['billing','patients','settings'],
+    BILLING:               ['billing','patient_ledger','advance_wallet','billing_settings','collections','patients','settings'],
     LAB:                   ['lis','patients','settings'],
     LAB_TECHNICIAN:        ['lis','patients','settings']
   };
