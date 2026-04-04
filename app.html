@@ -7052,15 +7052,25 @@ function printBillHTML(printData, overrides) {
     'table { width: 100%; border-collapse: collapse; }' +
     '</style></head><body>';
 
+  /* Bill time for thermal */
+  var billTime = '';
+  if (printData.created_at) {
+    var ts2 = Number(printData.created_at);
+    if (ts2 > 0 && ts2 < 9999999999) ts2 = ts2 * 1000;
+    var dt = new Date(ts2);
+    billTime = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  }
+
   if (isThermal) {
     /* ===== THERMAL/COMPACT STYLE ===== */
     html += '<div style="text-align:center;font-size:' + spec.titleSize + 'px;font-weight:800;">' + hospitalName + '</div>';
     if (addressStr) html += '<div style="text-align:center;font-size:9px;color:#333;">' + addressStr + '</div>';
     if (h.phone) html += '<div style="text-align:center;font-size:9px;color:#333;">Ph: ' + h.phone + '</div>';
-    html += '<div style="text-align:center;font-size:9px;color:#333;margin-bottom:6px;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
-    html += '<div style="font-size:10px;"><strong>Bill#:</strong> ' + billNumber + '  <strong>Date:</strong> ' + billDate + '</div>';
+    html += '<div style="border-bottom:1px dashed #333;margin:6px 0;"></div>';
+    html += '<div style="font-size:10px;"><strong>Bill#:</strong> ' + billNumber + '</div>';
+    html += '<div style="font-size:10px;"><strong>Date:</strong> ' + billDate + (billTime ? ' ' + billTime : '') + '</div>';
     html += '<div style="font-size:10px;"><strong>Patient:</strong> ' + patientName + (uhid ? ' (' + uhid + ')' : '') + '</div>';
-    html += '<div style="font-size:9px;color:#333;margin:4px 0;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
+    html += '<div style="border-bottom:1px dashed #333;margin:6px 0;"></div>';
     for (var ti = 0; ti < items.length; ti++) {
       var titem = items[ti];
       var tqty = titem.qty || titem.quantity || 1;
@@ -7068,18 +7078,18 @@ function printBillHTML(printData, overrides) {
       var tamt = titem.amount || (tqty * trate);
       var tdesc = titem.desc || titem.description || titem.name || titem.item_name || 'Item';
       html += '<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;">';
-      html += '<span style="flex:1;">' + tdesc + '</span>';
-      html += '<span style="width:30px;text-align:center;">' + tqty + '</span>';
-      html += '<span style="width:60px;text-align:right;">\u20B9' + Number(tamt).toLocaleString('en-IN') + '</span>';
+      html += '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + tdesc + '</span>';
+      html += '<span style="width:30px;text-align:center;flex-shrink:0;">' + tqty + '</span>';
+      html += '<span style="width:55px;text-align:right;flex-shrink:0;">\u20B9' + Number(tamt).toLocaleString('en-IN') + '</span>';
       html += '</div>';
     }
-    html += '<div style="font-size:9px;margin:4px 0;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
+    html += '<div style="border-bottom:1px dashed #333;margin:6px 0;"></div>';
     if (discount > 0) html += '<div style="display:flex;justify-content:space-between;font-size:10px;"><span>Discount</span><span>-\u20B9' + discount.toLocaleString('en-IN') + '</span></div>';
     html += '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin:4px 0;"><span>TOTAL</span><span>\u20B9' + total.toLocaleString('en-IN') + '</span></div>';
     html += '<div style="font-size:9px;font-style:italic;margin-bottom:4px;">' + wordsStr + '</div>';
-    html += '<div style="font-size:10px;">Paid: ' + paymentMode + ' \u20B9' + paid.toLocaleString('en-IN') + '</div>';
+    html += '<div style="font-size:10px;">Paid: \u20B9' + paid.toLocaleString('en-IN') + ' (' + paymentMode.charAt(0).toUpperCase() + paymentMode.slice(1) + ')</div>';
     if (balance > 0) html += '<div style="font-size:10px;color:#b91c1c;font-weight:600;">Balance: \u20B9' + balance.toLocaleString('en-IN') + '</div>';
-    html += '<div style="font-size:9px;margin:6px 0;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
+    html += '<div style="border-bottom:1px dashed #333;margin:6px 0;"></div>';
     if (qrHash) html += '<div style="text-align:center;margin:6px 0;">' + qrImgHtml + '</div>';
     html += '<div style="text-align:center;font-size:8px;color:#555;">Thank you! Powered by MediHost\u2122</div>';
 
@@ -13500,6 +13510,26 @@ function bsRender(s) {
   var mc = document.getElementById('module-content');
   var h = '<div class="section-header"><div class="section-title">' + t('settings.billing') + '</div></div>';
 
+  // Hospital Header (logo + identity on bills)
+  var currentLogo = (appState.hospital || {}).logo_url || (appState.hospital || {}).logo || (appState.hospital || {}).website_logo_url || '';
+  h += '<div class="bv2-settings-section"><div class="bv2-settings-title">Hospital Header (on bills)</div>';
+  h += '<div class="bv2-settings-row"><label>Hospital logo</label><div>';
+  if (currentLogo) h += '<img src="' + currentLogo + '" style="max-height:40px;max-width:160px;border:1px solid var(--mw-border);border-radius:6px;margin-bottom:6px;display:block;">';
+  h += '<input type="file" id="bs_logo_file" accept="image/png,image/jpeg,image/svg+xml" style="font-size:12px;" onchange="bsPreviewLogo(this)">';
+  h += '<div id="bs_logo_preview" style="margin-top:4px;"></div>';
+  h += '<div style="font-size:11px;color:var(--mw-text-3);margin-top:4px;">PNG, JPG, or SVG. Max 500KB. Recommended: 300x100px.</div>';
+  h += '</div></div>';
+  h += '<div class="bv2-settings-row"><label>Hospital name (on bill)</label><input id="bs_hospital_name" value="' + ((appState.hospital || {}).name || '') + '" placeholder="Clinic / Hospital name"></div>';
+  h += '<div class="bv2-settings-row"><label>Address</label><input id="bs_address" value="' + ((appState.hospital || {}).address || (appState.hospital || {}).address_line1 || '') + '" placeholder="Address line"></div>';
+  h += '<div class="bv2-settings-row"><label>City, State, Pincode</label><div style="display:flex;gap:8px;">' +
+    '<input id="bs_city" value="' + ((appState.hospital || {}).city || '') + '" placeholder="City" style="flex:1">' +
+    '<input id="bs_state" value="' + ((appState.hospital || {}).state || '') + '" placeholder="State" style="flex:1">' +
+    '<input id="bs_pincode" value="' + ((appState.hospital || {}).pincode || '') + '" placeholder="Pincode" style="width:80px">' +
+    '</div></div>';
+  h += '<div class="bv2-settings-row"><label>Phone</label><input id="bs_phone" value="' + ((appState.hospital || {}).phone || '') + '" placeholder="Hospital phone"></div>';
+  h += '<div class="bv2-settings-row"><label>Email</label><input id="bs_email" value="' + ((appState.hospital || {}).email || '') + '" placeholder="Hospital email"></div>';
+  h += '</div>';
+
   // Print Preferences
   h += '<div class="bv2-settings-section"><div class="bv2-settings-title">' + t('settings.billing.print') + '</div>';
   h += '<div class="bv2-settings-row"><label>' + t('print.format') + '</label><select id="bs_format"><option value="a4"' + (s.print_format === 'a4' ? ' selected' : '') + '>' + t('print.a4') + '</option><option value="a5"' + (s.print_format === 'a5' ? ' selected' : '') + '>' + t('print.a5') + '</option><option value="thermal"' + (s.print_format === 'thermal' ? ' selected' : '') + '>' + t('print.thermal') + '</option></select></div>';
@@ -13547,6 +13577,23 @@ function bsToggleRow(id, label, checked) {
   return '<div class="bv2-settings-row"><label>' + label + '</label><label class="bv2-toggle"><input type="checkbox" id="' + id + '"' + (checked ? ' checked' : '') + '><span class="bv2-toggle-slider"></span></label></div>';
 }
 
+function bsPreviewLogo(input) {
+  var preview = document.getElementById('bs_logo_preview');
+  if (!input.files || !input.files[0]) { preview.innerHTML = ''; return; }
+  var file = input.files[0];
+  if (file.size > 512000) {
+    showNotification('error', 'File too large', 'Logo must be under 500KB.');
+    input.value = '';
+    preview.innerHTML = '';
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    preview.innerHTML = '<img src="' + e.target.result + '" style="max-height:40px;max-width:160px;border:1px solid var(--mw-border);border-radius:6px;">';
+  };
+  reader.readAsDataURL(file);
+}
+
 function bsSave() {
   var body = {
     print_format: document.getElementById('bs_format').value,
@@ -13567,8 +13614,52 @@ function bsSave() {
     bill_prefix: document.getElementById('bs_prefix').value,
     wallet_enabled: document.getElementById('bs_wallet_enabled').checked,
     wallet_auto_deduct: document.getElementById('bs_wallet_auto').checked,
-    min_advance: parseFloat(document.getElementById('bs_min_advance').value) || 0
+    min_advance: parseFloat(document.getElementById('bs_min_advance').value) || 0,
+    hospital_name: document.getElementById('bs_hospital_name').value,
+    address: document.getElementById('bs_address').value,
+    city: document.getElementById('bs_city').value,
+    state: document.getElementById('bs_state').value,
+    pincode: document.getElementById('bs_pincode').value,
+    phone: document.getElementById('bs_phone').value,
+    email: document.getElementById('bs_email').value
   };
+
+  /* Update local appState.hospital so prints reflect changes immediately */
+  var hosp = appState.hospital || {};
+  if (body.hospital_name) hosp.name = body.hospital_name;
+  if (body.address) hosp.address = body.address;
+  if (body.city) hosp.city = body.city;
+  if (body.state) hosp.state = body.state;
+  if (body.pincode) hosp.pincode = body.pincode;
+  if (body.phone) hosp.phone = body.phone;
+  if (body.email) hosp.email = body.email;
+  if (body.gstin) hosp.gstin = body.gstin;
+  if (body.reg_number) hosp.reg_number = body.reg_number;
+  if (body.tagline) hosp.tagline = body.tagline;
+  if (body.signatory_name) hosp.signatory_name = body.signatory_name;
+  hosp.print_format = body.print_format;
+  hosp.bill_style = body.bill_style;
+  hosp.bill_language = body.bill_language;
+  hosp.bill_terms = body.terms;
+  appState.hospital = hosp;
+
+  /* Handle logo upload if a file was selected */
+  var logoInput = document.getElementById('bs_logo_file');
+  if (logoInput && logoInput.files && logoInput.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      body.logo_url = e.target.result;
+      hosp.logo_url = e.target.result;
+      appState.hospital = hosp;
+      doSaveBillingSettings(body);
+    };
+    reader.readAsDataURL(logoInput.files[0]);
+  } else {
+    doSaveBillingSettings(body);
+  }
+}
+
+function doSaveBillingSettings(body) {
   api.post(api.h('/billing-settings'), body).then(function() {
     showNotification('success', 'Settings saved', 'Billing settings updated successfully');
   }).catch(function(e) { showNotification('error', 'Save failed', e.message); });
