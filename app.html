@@ -1523,6 +1523,26 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
               <!-- Patient selection -->
               <div style="background:var(--mw-surface);border:1px solid var(--mw-border);border-radius:var(--mw-radius-lg);padding:14px;margin-bottom:14px">
                 <div style="font-size:12px;font-weight:600;color:var(--mw-text-3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Patient</div>
+                <!-- Phone search (primary) -->
+                <div style="display:flex;gap:8px;margin-bottom:8px">
+                  <input type="tel" id="billPhoneSearch" placeholder="Search by phone number..." maxlength="10" style="flex:1;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:7px 10px;font-size:13px;font-family:var(--mw-font)"
+                    oninput="searchBillByPhone()" autocomplete="off">
+                  <button class="btn btn-outline btn-sm" onclick="setWalkInPatient()" title="Walk-in (no patient record)">Walk-in</button>
+                </div>
+                <!-- Quick register inline (shown when phone not found) -->
+                <div id="billQuickRegister" style="display:none;margin-bottom:8px;padding:10px;background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--mw-radius)">
+                  <div style="font-size:11px;font-weight:600;color:#92400E;margin-bottom:6px">Patient not found — Quick Register</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                    <input type="text" id="qrFirstName" placeholder="First name *" style="font-size:12px;padding:5px 8px;border:1px solid var(--mw-border);border-radius:4px">
+                    <input type="text" id="qrLastName" placeholder="Last name" style="font-size:12px;padding:5px 8px;border:1px solid var(--mw-border);border-radius:4px">
+                    <input type="number" id="qrAge" placeholder="Age" min="0" max="150" style="font-size:12px;padding:5px 8px;border:1px solid var(--mw-border);border-radius:4px">
+                    <select id="qrGender" style="font-size:12px;padding:5px 8px;border:1px solid var(--mw-border);border-radius:4px">
+                      <option value="">Gender</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-sm" style="margin-top:6px;background:var(--mw-primary);color:#fff;border:none;width:100%" onclick="quickRegisterAndSelect()">Register & Select</button>
+                </div>
+                <!-- Name/UHID search (secondary) -->
                 <div style="display:flex;gap:8px">
                   <input type="text" id="billPatientSearch" placeholder="Search patient by name or UHID..." style="flex:1"
                     oninput="searchBillPatient()" autocomplete="off">
@@ -1530,6 +1550,14 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
                 </div>
                 <div id="billPatientDropdown" style="display:none;position:relative;z-index:100;margin-top:4px"></div>
                 <div id="billPatientSelected" style="display:none;margin-top:8px;padding:8px;background:var(--mw-bg);border-radius:var(--mw-radius);font-size:13px"></div>
+              </div>
+
+              <!-- Branch selector -->
+              <div style="background:var(--mw-surface);border:1px solid var(--mw-border);border-radius:var(--mw-radius-lg);padding:14px;margin-bottom:14px">
+                <div style="font-size:12px;font-weight:600;color:var(--mw-text-3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Branch</div>
+                <select id="billBranchSelect" style="width:100%;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:7px 10px;font-size:13px;font-family:var(--mw-font);background:var(--mw-surface)">
+                  <option value="">Main Branch</option>
+                </select>
               </div>
 
               <!-- Bill items -->
@@ -1598,6 +1626,23 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
                   </div>
                   <div id="discountDisplay" style="text-align:right;font-size:11px;color:var(--mw-text-3);margin-top:2px"></div>
                   <input type="hidden" id="billDiscount" value="0">
+                  <!-- GST toggle -->
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-top:1px dashed var(--mw-border);margin-top:4px">
+                    <span style="color:var(--mw-text-2);font-size:12px">GST applicable</span>
+                    <label class="tog" style="margin:0"><input type="checkbox" id="billGstToggle" onchange="toggleBillGst()"><span class="tog-slider"></span></label>
+                  </div>
+                  <div id="billGstInputs" style="display:none;padding:4px 0">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                      <div style="display:flex;align-items:center;gap:4px">
+                        <span style="color:var(--mw-text-3);font-size:11px;white-space:nowrap">CGST %</span>
+                        <input type="number" id="billCGSTRate" value="0" min="0" max="14" step="0.5" style="width:50px;border:1px solid var(--mw-border);border-radius:4px;padding:2px 4px;font-size:12px;text-align:right" oninput="recalcBillGst()">
+                      </div>
+                      <div style="display:flex;align-items:center;gap:4px">
+                        <span style="color:var(--mw-text-3);font-size:11px;white-space:nowrap">SGST %</span>
+                        <input type="number" id="billSGSTRate" value="0" min="0" max="14" step="0.5" style="width:50px;border:1px solid var(--mw-border);border-radius:4px;padding:2px 4px;font-size:12px;text-align:right" oninput="recalcBillGst()">
+                      </div>
+                    </div>
+                  </div>
                   <div style="display:flex;justify-content:space-between">
                     <span style="color:var(--mw-text-2)">CGST</span>
                     <span id="billCGST">₹0.00</span>
@@ -1610,6 +1655,20 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
                     <span>Total</span>
                     <span id="billTotal" style="color:var(--mw-primary)">₹0.00</span>
                   </div>
+                  <!-- Amount in words -->
+                  <div id="billAmountWords" style="font-size:11px;color:var(--mw-text-3);font-style:italic;margin-top:4px"></div>
+
+                  <!-- Wallet section -->
+                  <div id="billWalletSection" style="display:none;margin-top:8px;padding:8px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--mw-radius)">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                      <div style="font-size:12px;color:#1E40AF">
+                        <span style="font-weight:600">Wallet:</span> <span id="billWalletBal">₹0</span> available
+                      </div>
+                      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#1E40AF">
+                        <input type="checkbox" id="billUseWallet" onchange="recalcBillWithWallet()"> Use wallet
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Payment mode -->
@@ -1621,8 +1680,19 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
                     <button class="bill-pay-btn" data-mode="card" onclick="selectPayMode(this)">&#128179; Card</button>
                     <button class="bill-pay-btn" data-mode="insurance" onclick="selectPayMode(this)">&#127973; Insurance</button>
                     <button class="bill-pay-btn" data-mode="online" onclick="selectPayMode(this)">&#128421; Online</button>
+                    <button class="bill-pay-btn" data-mode="bank_transfer" onclick="selectPayMode(this)">&#127974; Bank Txfr</button>
                     <button class="bill-pay-btn" data-mode="pending" onclick="selectPayMode(this)">&#128336; Pending</button>
                   </div>
+                  <!-- Payment method dropdown (alternative) -->
+                  <select id="billPayMethodDropdown" style="width:100%;margin-top:8px;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:7px 10px;font-size:13px;font-family:var(--mw-font);background:var(--mw-surface)" onchange="selectPayModeDropdown(this.value)">
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="upi">UPI</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="online">Online</option>
+                    <option value="insurance">Insurance</option>
+                    <option value="pending">Pending</option>
+                  </select>
                 </div>
 
                 <!-- Transaction ref (shown for UPI/Card) -->
@@ -1631,13 +1701,29 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
                   <input type="text" id="billTxnRef" placeholder="Enter UPI ref no. or card transaction ID" style="width:100%;margin-top:4px;border:1px solid var(--mw-border);border-radius:var(--mw-radius);padding:7px 10px;font-size:13px;font-family:var(--mw-font)">
                 </div>
 
-                <!-- Amount paid -->
+                <!-- Amount received -->
                 <div style="margin-top:12px">
-                  <label style="font-size:12px;color:var(--mw-text-2)">Amount Paid (₹)</label>
+                  <label style="font-size:12px;color:var(--mw-text-2)">Amount Received (₹)</label>
                   <input type="number" id="billAmountPaid" placeholder="0.00" style="width:100%;margin-top:4px" oninput="calcBalance()">
-                  <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:13px">
-                    <span style="color:var(--mw-text-2)">Balance</span>
-                    <span id="billBalance" style="font-weight:600;color:var(--mw-danger)">₹0.00</span>
+                </div>
+
+                <!-- Enhanced Summary Display -->
+                <div id="billSummaryDisplay" style="margin-top:12px;padding:10px;background:var(--mw-bg);border-radius:var(--mw-radius);font-size:13px">
+                  <div style="display:flex;justify-content:space-between;padding:3px 0">
+                    <span style="color:var(--mw-text-2)">Total</span>
+                    <span id="billSummaryTotal" style="font-weight:700;color:var(--mw-primary)">₹0.00</span>
+                  </div>
+                  <div id="billSummaryWalletRow" style="display:none;display:flex;justify-content:space-between;padding:3px 0">
+                    <span style="color:#1E40AF">Wallet Used</span>
+                    <span id="billSummaryWallet" style="font-weight:600;color:#1E40AF">₹0.00</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:3px 0">
+                    <span style="color:var(--mw-text-2)">Received</span>
+                    <span id="billSummaryReceived" style="font-weight:600;color:#10B981">₹0.00</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid var(--mw-border);margin-top:2px">
+                    <span style="font-weight:600">Balance Due</span>
+                    <span id="billBalance" style="font-weight:700;color:var(--mw-danger)">₹0.00</span>
                   </div>
                 </div>
 
@@ -1724,6 +1810,8 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
               <button class="btn btn-ghost btn-sm" onclick="closeBillDetail()">&times;</button>
             </div>
           </div>
+          <!-- Action Bar for bill detail -->
+          <div id="billDetailActionBar"></div>
           <div id="billDetailContent"></div>
         </div>
       </div>
@@ -2765,10 +2853,10 @@ tat_dashboard:   { label:'TAT Analytics', section:'insights', screen:'screenTatD
   // --- CORE (always enabled, not toggleable) ---
   dashboard:    { label: 'Dashboard',     section: 'core', screen: 'screenDashboard',    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="4" rx="1"/><rect x="14" y="10" width="7" height="11" rx="1"/><rect x="3" y="13" width="7" height="8" rx="1"/></svg>', core: true },
   patients:     { label: 'Patients',      section: 'core', screen: 'screenPatients',     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>', core: true },
-  billing:      { label: 'Billing',       section: 'core', screen: 'screenBilling',      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>', core: true },
-  patient_ledger:   { label: 'Patient Ledger',   section: 'core', screen: 'screenPatientLedger',   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>', core: true },
-  advance_wallet:   { label: 'Advance / Wallet', section: 'core', screen: 'screenAdvanceWallet',   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>', core: true },
-  billing_settings: { label: 'Billing Settings', section: 'insights', screen: 'screenBillingSettings', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>' },
+  billing:      { label: 'Billing',       section: 'billing', screen: 'screenBilling',      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>', core: true },
+  patient_ledger:   { label: 'Patient Ledger',   section: 'billing', screen: 'screenPatientLedger',   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>', core: true },
+  advance_wallet:   { label: 'Advance / Wallet', section: 'billing', screen: 'screenAdvanceWallet',   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>', core: true },
+  billing_settings: { label: 'Billing Settings', section: 'billing', screen: 'screenBillingSettings', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>' },
 
   // --- CLINICAL MODULES ---
   emr:          { label: 'EMR',           section: 'clinical', screen: 'screenEmr',          icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
@@ -2781,7 +2869,7 @@ tat_dashboard:   { label:'TAT Analytics', section:'insights', screen:'screenTatD
   whatsapp_ai:  { label: 'WhatsApp AI',   section: 'ai', screen: 'screenWhatsappAi',  icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>' },
 
   // --- ANALYTICS & COMPLIANCE ---
-  collections:  { label: 'Collections',   section: 'insights', screen: 'screenCollections',   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>' },
+  collections:  { label: 'Collections',   section: 'billing', screen: 'screenCollections',   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>' },
   analytics:    { label: 'Analytics',     section: 'insights', screen: 'screenAnalytics',    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
   platform:     { label: 'Platform Apps', section: 'insights', screen: 'screenPlatform',     icon: '🌐', core: true },
 };
@@ -2798,6 +2886,7 @@ var PLAN_MODULES = {
 
 var SECTION_LABELS = {
   core:     'sidebar.main',
+  billing:  'sidebar.billing',
   clinical: 'sidebar.clinical',
   ai:       'sidebar.ai',
   insights: 'sidebar.insights',
@@ -3841,7 +3930,7 @@ function renderSidebar() {
   }
 
   /* Render each section */
-  var sectionOrder = ['core', 'clinical', 'ai', 'insights'];
+  var sectionOrder = ['core', 'billing', 'clinical', 'ai', 'insights'];
   for (var s = 0; s < sectionOrder.length; s++) {
     var sectionKey = sectionOrder[s];
     var items = sections[sectionKey];
@@ -13218,7 +13307,7 @@ var _origLoadBills = typeof loadBills === 'function' ? loadBills : null;
    ================================================================ */
 var _origRecalcBill = typeof recalcBill === 'function' ? recalcBill : null;
 (function() {
-  /* After recalcBill runs, inject amount-in-words below total */
+  /* After recalcBill runs, update amount-in-words + summary display */
   var origRecalc = window.recalcBill;
   if (!origRecalc) return;
   window.recalcBill = function() {
@@ -13226,14 +13315,363 @@ var _origRecalcBill = typeof recalcBill === 'function' ? recalcBill : null;
     var totalEl = document.getElementById('billTotal');
     if (!totalEl) return;
     var totalVal = parseFloat((totalEl.textContent || '0').replace(/[^\d.]/g, '')) || 0;
-    var wordsEl = document.getElementById('billTotalWords');
-    if (!wordsEl) {
-      wordsEl = document.createElement('div');
-      wordsEl.id = 'billTotalWords';
-      wordsEl.style.cssText = 'font-size:11px;color:var(--mw-text-3);font-style:italic;margin-top:4px';
-      totalEl.parentElement.parentElement.appendChild(wordsEl);
+    /* Amount in words — use dedicated element */
+    var wordsEl = document.getElementById('billAmountWords');
+    if (wordsEl) wordsEl.textContent = totalVal > 0 ? amountInWords(totalVal) : '';
+    /* Also update legacy billTotalWords if it exists */
+    var wordsEl2 = document.getElementById('billTotalWords');
+    if (wordsEl2) wordsEl2.textContent = amountInWords(totalVal);
+    /* Update summary display */
+    updateBillSummaryDisplay();
+  };
+})();
+
+/* ================================================================
+   BILLING V2 — Phone search + Walk-in + Quick register
+   ================================================================ */
+var _phoneSearchTimer = null;
+function searchBillByPhone() {
+  var phone = (document.getElementById('billPhoneSearch').value || '').replace(/\D/g, '');
+  var qr = document.getElementById('billQuickRegister');
+  if (phone.length < 10) { if (qr) qr.style.display = 'none'; return; }
+  clearTimeout(_phoneSearchTimer);
+  _phoneSearchTimer = setTimeout(function() {
+    /* First check local cache */
+    var found = null;
+    for (var i = 0; i < patientCache.length; i++) {
+      var p = patientCache[i];
+      if ((p.phone || '').replace(/\D/g, '').indexOf(phone) >= 0) { found = p; break; }
     }
-    wordsEl.textContent = amountInWords(totalVal);
+    if (found) {
+      selectBillPatient(found);
+      if (qr) qr.style.display = 'none';
+      return;
+    }
+    /* Try API lookup */
+    api.get(api.h('/patients') + '?phone=' + encodeURIComponent(phone)).then(function(data) {
+      var patients = data.patients || data.data || data;
+      if (Array.isArray(patients) && patients.length > 0) {
+        selectBillPatient(patients[0]);
+        if (qr) qr.style.display = 'none';
+      } else {
+        /* Not found — show quick register */
+        if (qr) qr.style.display = '';
+      }
+    }).catch(function() {
+      if (qr) qr.style.display = '';
+    });
+  }, 400);
+}
+
+function setWalkInPatient() {
+  billPatientData = null;
+  var sel = document.getElementById('billPatientSelected');
+  var dd = document.getElementById('billPatientDropdown');
+  var qr = document.getElementById('billQuickRegister');
+  if (dd) dd.style.display = 'none';
+  if (qr) qr.style.display = 'none';
+  document.getElementById('billPhoneSearch').value = '';
+  document.getElementById('billPatientSearch').value = '';
+  if (sel) {
+    sel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center">' +
+      '<div><strong>Walk-in Patient</strong> <span style="font-size:11px;color:var(--mw-text-3)">(No record)</span></div></div>';
+    sel.style.display = '';
+  }
+  /* Hide wallet section for walk-in */
+  var ws = document.getElementById('billWalletSection');
+  if (ws) ws.style.display = 'none';
+}
+
+function quickRegisterAndSelect() {
+  var phone = (document.getElementById('billPhoneSearch').value || '').replace(/\D/g, '');
+  var firstName = (document.getElementById('qrFirstName').value || '').trim();
+  var lastName = (document.getElementById('qrLastName').value || '').trim();
+  var age = parseInt(document.getElementById('qrAge').value) || 0;
+  var gender = document.getElementById('qrGender').value || '';
+  if (!firstName) { showToast('First name is required', 'error'); return; }
+  if (!phone || phone.length < 10) { showToast('Valid phone number is required', 'error'); return; }
+  var body = { first_name: firstName, last_name: lastName, phone: phone, age: age, gender: gender };
+  api.post(api.h('/patients'), body).then(function(data) {
+    var p = data.patient || data;
+    patientCache.push(p);
+    selectBillPatient(p);
+    document.getElementById('billQuickRegister').style.display = 'none';
+    showToast('Patient registered: ' + firstName, 'success');
+  }).catch(function(e) { showToast('Registration failed: ' + e.message, 'error'); });
+}
+
+/* ================================================================
+   BILLING V2 — Branch selector population
+   ================================================================ */
+function populateBillBranches() {
+  var sel = document.getElementById('billBranchSelect');
+  if (!sel) return;
+  var branches = (appState.hospital || {}).branches || [];
+  sel.innerHTML = '<option value="">Main Branch</option>';
+  for (var i = 0; i < branches.length; i++) {
+    var b = branches[i];
+    var bId = b.id || b.branch_id || '';
+    var bName = b.name || b.branch_name || ('Branch ' + (i + 1));
+    sel.innerHTML += '<option value="' + bId + '">' + bName + '</option>';
+  }
+}
+
+/* ================================================================
+   BILLING V2 — GST toggle
+   ================================================================ */
+function toggleBillGst() {
+  var on = document.getElementById('billGstToggle').checked;
+  document.getElementById('billGstInputs').style.display = on ? '' : 'none';
+  if (!on) {
+    document.getElementById('billCGSTRate').value = '0';
+    document.getElementById('billSGSTRate').value = '0';
+  }
+  recalcBillGst();
+}
+
+function recalcBillGst() {
+  /* When GST toggle is on and custom rates provided, apply flat CGST/SGST rates to taxable amount */
+  var gstOn = document.getElementById('billGstToggle').checked;
+  if (!gstOn) { recalcBill(); return; }
+  var cgstRate = parseFloat(document.getElementById('billCGSTRate').value) || 0;
+  var sgstRate = parseFloat(document.getElementById('billSGSTRate').value) || 0;
+  /* Get taxable amount (subtotal - discount) */
+  var subtotal = 0;
+  for (var i = 0; i < billItems.length; i++) {
+    subtotal += billItems[i].qty * billItems[i].rate;
+  }
+  var discInput = Number(document.getElementById('billDiscountInput').value) || 0;
+  var discountAmt = discountMode === 'percent' ? subtotal * (Math.min(discInput, 100) / 100) : Math.min(discInput, subtotal);
+  var taxable = subtotal - discountAmt;
+  var cgst = taxable * (cgstRate / 100);
+  var sgst = taxable * (sgstRate / 100);
+  var total = taxable + cgst + sgst;
+  if (total < 0) total = 0;
+  document.getElementById('billCGST').textContent = '\u20B9' + cgst.toFixed(2);
+  document.getElementById('billSGST').textContent = '\u20B9' + sgst.toFixed(2);
+  document.getElementById('billTotal').textContent = '\u20B9' + total.toFixed(2);
+  document.getElementById('billDiscount').value = discountAmt.toFixed(2);
+  var discEl = document.getElementById('discountDisplay');
+  if (discEl) {
+    if (discountAmt > 0) {
+      var pct = subtotal > 0 ? (discountAmt / subtotal) * 100 : 0;
+      discEl.textContent = '\u20B9' + discountAmt.toFixed(2) + ' (' + pct.toFixed(1) + '%)';
+    } else discEl.textContent = '';
+  }
+  document.getElementById('billSubtotal').textContent = '\u20B9' + subtotal.toFixed(2);
+  /* Update words */
+  var wordsEl = document.getElementById('billAmountWords');
+  if (wordsEl) wordsEl.textContent = total > 0 ? amountInWords(total) : '';
+  calcBalance();
+  updateBillSummaryDisplay();
+}
+
+/* ================================================================
+   BILLING V2 — Wallet integration in Create Bill
+   ================================================================ */
+var billWalletBalance = 0;
+
+function checkPatientWallet(patientId) {
+  if (!patientId) { hideBillWallet(); return; }
+  api.get(api.h('/patients/' + patientId + '/wallet')).then(function(data) {
+    billWalletBalance = parseFloat(data.balance || data.wallet_balance || 0) || 0;
+    var ws = document.getElementById('billWalletSection');
+    var wb = document.getElementById('billWalletBal');
+    if (billWalletBalance > 0 && ws) {
+      ws.style.display = '';
+      if (wb) wb.textContent = '\u20B9' + billWalletBalance.toLocaleString('en-IN');
+    } else { hideBillWallet(); }
+  }).catch(function() { hideBillWallet(); });
+}
+
+function hideBillWallet() {
+  billWalletBalance = 0;
+  var ws = document.getElementById('billWalletSection');
+  if (ws) ws.style.display = 'none';
+  var cb = document.getElementById('billUseWallet');
+  if (cb) cb.checked = false;
+}
+
+function recalcBillWithWallet() {
+  calcBalance();
+  updateBillSummaryDisplay();
+}
+
+function getWalletDeduction() {
+  var cb = document.getElementById('billUseWallet');
+  if (!cb || !cb.checked || billWalletBalance <= 0) return 0;
+  var totalEl = document.getElementById('billTotal');
+  var total = parseFloat((totalEl.textContent || '0').replace(/[^\d.]/g, '')) || 0;
+  return Math.min(billWalletBalance, total);
+}
+
+/* ================================================================
+   BILLING V2 — Enhanced summary display
+   ================================================================ */
+function updateBillSummaryDisplay() {
+  var totalEl = document.getElementById('billTotal');
+  var total = parseFloat((totalEl ? totalEl.textContent : '0').replace(/[^\d.]/g, '')) || 0;
+  var walletUsed = getWalletDeduction();
+  var received = Number(document.getElementById('billAmountPaid').value) || 0;
+  var balanceDue = Math.max(0, total - walletUsed - received);
+
+  var st = document.getElementById('billSummaryTotal');
+  var sw = document.getElementById('billSummaryWallet');
+  var sr = document.getElementById('billSummaryReceived');
+  var sb = document.getElementById('billBalance');
+  var swr = document.getElementById('billSummaryWalletRow');
+
+  if (st) st.textContent = '\u20B9' + total.toFixed(2);
+  if (sw) sw.textContent = '-\u20B9' + walletUsed.toFixed(2);
+  if (swr) swr.style.display = walletUsed > 0 ? 'flex' : 'none';
+  if (sr) {
+    sr.textContent = '\u20B9' + received.toFixed(2);
+    sr.style.color = received > 0 ? '#10B981' : 'var(--mw-text-3)';
+  }
+  if (sb) {
+    sb.textContent = '\u20B9' + balanceDue.toFixed(2);
+    sb.style.color = balanceDue > 0 ? 'var(--mw-danger)' : '#10B981';
+  }
+}
+
+/* ================================================================
+   BILLING V2 — Payment method dropdown sync
+   ================================================================ */
+function selectPayModeDropdown(mode) {
+  billPayMode = mode;
+  /* Sync buttons */
+  document.querySelectorAll('.bill-pay-btn').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-mode') === mode);
+  });
+  /* Show txn ref for UPI/Card/Bank Transfer */
+  var txnWrap = document.getElementById('billTxnRefWrap');
+  if (txnWrap) txnWrap.style.display = (mode === 'upi' || mode === 'card' || mode === 'bank_transfer') ? '' : 'none';
+  /* Auto-fill amount paid */
+  if (mode !== 'pending' && mode !== 'insurance') {
+    var totalEl = document.getElementById('billTotal');
+    var total = parseFloat((totalEl.textContent || '0').replace(/[^\d.]/g, '')) || 0;
+    var walletDed = getWalletDeduction();
+    document.getElementById('billAmountPaid').value = Math.max(0, total - walletDed).toFixed(2);
+  } else {
+    document.getElementById('billAmountPaid').value = '';
+  }
+  calcBalance();
+  updateBillSummaryDisplay();
+}
+
+/* ================================================================
+   BILLING V2 — Wire action bar into viewBillDetail
+   ================================================================ */
+(function() {
+  var origViewBillDetail = window.viewBillDetail;
+  if (!origViewBillDetail) return;
+  window.viewBillDetail = function(billId) {
+    origViewBillDetail.apply(this, arguments);
+    /* Inject action bar after the detail loads */
+    var abContainer = document.getElementById('billDetailActionBar');
+    if (!abContainer) return;
+    var bill = window._activeBillDetail;
+    if (!bill) return;
+    var phone = bill.patient_phone || '';
+    var email = bill.patient_email || '';
+    abContainer.innerHTML = renderActionBar({
+      documentType: 'bill',
+      documentId: String(bill.id || bill.bill_id || ''),
+      patientPhone: phone,
+      patientEmail: email,
+      patientLang: (appState.hospital || {}).default_language || 'te'
+    });
+  };
+})();
+
+/* ================================================================
+   BILLING V2 — Enhance selectBillPatient to check wallet
+   ================================================================ */
+(function() {
+  var origSelectBillPatient = window.selectBillPatient;
+  if (!origSelectBillPatient) return;
+  window.selectBillPatient = function(p) {
+    origSelectBillPatient.apply(this, arguments);
+    /* Check wallet balance for selected patient */
+    var pid = String(p.patient_id || p.id || '');
+    if (pid) checkPatientWallet(pid);
+    /* Hide quick register */
+    var qr = document.getElementById('billQuickRegister');
+    if (qr) qr.style.display = 'none';
+  };
+})();
+
+/* ================================================================
+   BILLING V2 — Enhance openNewBill to reset new fields
+   ================================================================ */
+(function() {
+  var origOpenNewBill = window.openNewBill;
+  if (!origOpenNewBill) return;
+  window.openNewBill = function(prefillPatientId) {
+    origOpenNewBill.apply(this, arguments);
+    /* Reset new fields */
+    var phoneEl = document.getElementById('billPhoneSearch');
+    if (phoneEl) phoneEl.value = '';
+    var qr = document.getElementById('billQuickRegister');
+    if (qr) qr.style.display = 'none';
+    var gstToggle = document.getElementById('billGstToggle');
+    if (gstToggle) { gstToggle.checked = false; toggleBillGst(); }
+    hideBillWallet();
+    var wordsEl = document.getElementById('billAmountWords');
+    if (wordsEl) wordsEl.textContent = '';
+    var swr = document.getElementById('billSummaryWalletRow');
+    if (swr) swr.style.display = 'none';
+    /* Populate branches */
+    populateBillBranches();
+    /* Sync dropdown with default pay mode */
+    var dd = document.getElementById('billPayMethodDropdown');
+    if (dd) dd.value = 'cash';
+    updateBillSummaryDisplay();
+  };
+})();
+
+/* ================================================================
+   BILLING V2 — Enhance calcBalance to update summary
+   ================================================================ */
+(function() {
+  var origCalcBalance = window.calcBalance;
+  if (!origCalcBalance) return;
+  window.calcBalance = function() {
+    /* Calculate balance accounting for wallet deduction */
+    var totalEl = document.getElementById('billTotal');
+    var total = parseFloat((totalEl.textContent || '0').replace(/[^\d.]/g, '')) || 0;
+    var walletDed = getWalletDeduction();
+    var paid = Number(document.getElementById('billAmountPaid').value) || 0;
+    var balance = total - walletDed - paid;
+    var el = document.getElementById('billBalance');
+    if (el) {
+      el.textContent = '\u20B9' + Math.max(0, balance).toFixed(2);
+      el.style.color = balance > 0 ? 'var(--mw-danger)' : '#10B981';
+    }
+    updateBillSummaryDisplay();
+  };
+})();
+
+/* ================================================================
+   BILLING V2 — Enhance saveBill to include wallet + branch + GST toggle
+   ================================================================ */
+(function() {
+  var origSaveBill = window.saveBill;
+  if (!origSaveBill) return;
+  window.saveBill = function() {
+    /* Inject wallet and branch data into the bill before saving */
+    var walletDed = getWalletDeduction();
+    var branchEl = document.getElementById('billBranchSelect');
+    var branchId = branchEl ? branchEl.value : '';
+    /* Store in a temp object that can be read during save */
+    window._billV2Extra = {
+      wallet_deduction: walletDed,
+      branch_id: branchId,
+      gst_toggle: document.getElementById('billGstToggle') ? document.getElementById('billGstToggle').checked : false,
+      cgst_rate: parseFloat((document.getElementById('billCGSTRate') || {}).value) || 0,
+      sgst_rate: parseFloat((document.getElementById('billSGSTRate') || {}).value) || 0
+    };
+    origSaveBill.apply(this, arguments);
   };
 })();
 
