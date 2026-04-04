@@ -6376,6 +6376,8 @@ function openNewBill(prefillPatientId) {
       }
     }
   }
+  /* Populate branch dropdown */
+  if (appState.branches && appState.branches.length) populateBranchDropdowns(appState.branches);
   /* Add one empty item */
   addBillItem();
 }
