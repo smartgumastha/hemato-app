@@ -13005,36 +13005,28 @@ function renderActionBar(options) {
 }
 
 function abPrint(docType, docId) {
-  var fmt = (document.getElementById('ab_printFormat') || {}).value || 'a5';
-  var style = (document.getElementById('ab_printStyle') || {}).value || 'grid';
-  var lang = (document.getElementById('ab_printLang') || {}).value || 'en';
-
   if (docType === 'bill') {
     var bill = null;
     for (var i = 0; i < billCache.length; i++) {
       if (String(billCache[i].id) === String(docId)) { bill = billCache[i]; break; }
     }
-    if (!bill && window._activeBillDetail) {
-      bill = window._activeBillDetail;
-    }
+    if (!bill && window._activeBillDetail) bill = window._activeBillDetail;
     if (bill) {
-      var savedFormat = (appState.hospital || {}).print_format;
-      if (appState.hospital) appState.hospital.print_format = fmt;
       printBillHTML(bill);
-      if (appState.hospital && savedFormat !== undefined) appState.hospital.print_format = savedFormat;
     } else {
       api.get(api.h('/bills/' + docId)).then(function(data) {
-        var b = data.bill || data;
-        printBillHTML(b);
+        printBillHTML(data.bill || data);
       }).catch(function() {
         showNotification('error', 'Could not load bill', 'Please try again.');
       });
     }
-  } else {
-    var url = API_BASE + '/' + docType + 's/' + docId + '/print?format=' + fmt + '&style=' + style + '&language=' + lang;
-    var w = window.open(url, '_blank');
-    if (w) { w.onload = function() { w.print(); }; }
+    return;
   }
+  var fmt = document.getElementById('ab_printFormat') ? document.getElementById('ab_printFormat').value : 'a4';
+  var style = document.getElementById('ab_printStyle') ? document.getElementById('ab_printStyle').value : 'grid';
+  var lang = document.getElementById('ab_printLang') ? document.getElementById('ab_printLang').value : 'en';
+  var url = API_BASE + '/' + docType + 's/' + docId + '/print?format=' + fmt + '&style=' + style + '&language=' + lang;
+  window.open(url, '_blank');
 }
 
 function abWhatsApp(docType, docId, phone) {
@@ -13046,34 +13038,27 @@ function abWhatsApp(docType, docId, phone) {
 }
 
 function abPDF(docType, docId) {
-  var fmt = (document.getElementById('ab_printFormat') || {}).value || 'a5';
-  var style = (document.getElementById('ab_printStyle') || {}).value || 'grid';
-  var lang = (document.getElementById('ab_printLang') || {}).value || 'en';
-
   if (docType === 'bill') {
     var bill = null;
     for (var i = 0; i < billCache.length; i++) {
       if (String(billCache[i].id) === String(docId)) { bill = billCache[i]; break; }
     }
-    if (!bill && window._activeBillDetail) {
-      bill = window._activeBillDetail;
-    }
+    if (!bill && window._activeBillDetail) bill = window._activeBillDetail;
     if (bill) {
-      var savedFormat = (appState.hospital || {}).print_format;
-      if (appState.hospital) appState.hospital.print_format = fmt;
       printBillHTML(bill);
-      if (appState.hospital && savedFormat !== undefined) appState.hospital.print_format = savedFormat;
     } else {
       api.get(api.h('/bills/' + docId)).then(function(data) {
-        var b = data.bill || data;
-        printBillHTML(b);
+        printBillHTML(data.bill || data);
       }).catch(function() {
         showNotification('error', 'Could not load bill', 'Please try again.');
       });
     }
-  } else {
-    window.open(API_BASE + '/' + docType + 's/' + docId + '/print?format=' + fmt + '&style=' + style + '&language=' + lang + '&download=1', '_blank');
+    return;
   }
+  var fmt = document.getElementById('ab_printFormat') ? document.getElementById('ab_printFormat').value : 'a4';
+  var style = document.getElementById('ab_printStyle') ? document.getElementById('ab_printStyle').value : 'grid';
+  var lang = document.getElementById('ab_printLang') ? document.getElementById('ab_printLang').value : 'en';
+  window.open(API_BASE + '/' + docType + 's/' + docId + '/print?format=' + fmt + '&style=' + style + '&language=' + lang + '&download=1', '_blank');
 }
 
 function abEmail(docType, docId, email) {
