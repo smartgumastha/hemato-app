@@ -2775,6 +2775,229 @@ var api = {
 };
 
 /* ===========================================================
+   i18n — LANGUAGE STATE, LANG_EN BASE, t() FUNCTION, loadLanguage()
+   =========================================================== */
+var appLang = localStorage.getItem('hemato_lang') || 'en';
+var langData = {};
+var LANGUAGES = [
+  {code:'en', label:'EN', name:'English', nativeName:'English', dir:'ltr'},
+  {code:'hi', label:'हि', name:'Hindi', nativeName:'हिन्दी', dir:'ltr'},
+  {code:'bn', label:'বা', name:'Bengali', nativeName:'বাংলা', dir:'ltr'},
+  {code:'mr', label:'म', name:'Marathi', nativeName:'मराठी', dir:'ltr'},
+  {code:'te', label:'తె', name:'Telugu', nativeName:'తెలుగు', dir:'ltr'},
+  {code:'ta', label:'த', name:'Tamil', nativeName:'தமிழ்', dir:'ltr'},
+  {code:'gu', label:'ગુ', name:'Gujarati', nativeName:'ગુજરાતી', dir:'ltr'},
+  {code:'ur', label:'ار', name:'Urdu', nativeName:'اردو', dir:'rtl'},
+  {code:'kn', label:'ಕ', name:'Kannada', nativeName:'ಕನ್ನಡ', dir:'ltr'},
+  {code:'ml', label:'മ', name:'Malayalam', nativeName:'മലയാളം', dir:'ltr'}
+];
+
+var LANG_EN = {
+  // Common
+  'common.save': 'Save', 'common.cancel': 'Cancel', 'common.delete': 'Delete', 'common.print': 'Print',
+  'common.search': 'Search', 'common.close': 'Close', 'common.loading': 'Loading...', 'common.confirm': 'Confirm',
+  'common.yes': 'Yes', 'common.no': 'No', 'common.back': 'Back', 'common.next': 'Next', 'common.submit': 'Submit',
+  'common.edit': 'Edit', 'common.view': 'View', 'common.actions': 'Actions', 'common.ok': 'OK',
+  'common.i_understand': 'I understand', 'common.dont_show_again': "Don't show this again",
+  'common.status': 'Status', 'common.date': 'Date', 'common.time': 'Time',
+  'common.male': 'Male', 'common.female': 'Female', 'common.other': 'Other',
+
+  // Sidebar
+  'sidebar.main': 'Main', 'sidebar.clinical': 'Clinical', 'sidebar.admin': 'Admin',
+  'sidebar.dashboard': 'Dashboard', 'sidebar.patients': 'Patients', 'sidebar.billing': 'Billing',
+  'sidebar.appointments': 'Appointments', 'sidebar.opd_queue': 'OPD Queue',
+  'sidebar.doctor_dashboard': 'Doctor Dashboard', 'sidebar.triage': 'Triage Queue',
+  'sidebar.emr': 'EMR', 'sidebar.pharmacy': 'Pharmacy', 'sidebar.lis': 'LIS',
+  'sidebar.staff': 'Staff', 'sidebar.settings': 'Settings', 'sidebar.reports': 'Reports',
+  'sidebar.my_profile': 'My Profile',
+
+  // Patient Registration
+  'patient.register.title': 'Register new patient',
+  'patient.register.label.first_name': 'First name',
+  'patient.register.label.middle_name': 'Middle name',
+  'patient.register.label.last_name': 'Last name',
+  'patient.register.label.dob': 'Date of birth (auto-calculates age)',
+  'patient.register.label.age': 'Age (years)',
+  'patient.register.label.gender': 'Gender',
+  'patient.register.label.blood_group': 'Blood group',
+  'patient.register.label.phone': 'Phone number (10 digits, India)',
+  'patient.register.label.email': 'Email (optional)',
+  'patient.register.label.occupation': 'Occupation',
+  'patient.register.label.preferred_language': "Patient's preferred language",
+  'patient.register.button.register': 'Register patient',
+  'patient.register.button.cancel': 'Cancel',
+  'patient.register.tab.basic_info': 'Basic Info',
+  'patient.register.tab.address': 'Address',
+  'patient.register.tab.emergency': 'Emergency',
+  'patient.register.tab.abha_id': 'ABHA / ID',
+
+  // Patient List
+  'patient.list.title': 'Patients',
+  'patient.list.search': 'Search by name, UHID, or phone...',
+  'patient.list.table.uhid': 'UHID',
+  'patient.list.table.name': 'Name',
+  'patient.list.table.age_sex': 'Age/Sex',
+  'patient.list.table.phone': 'Phone',
+  'patient.list.table.last_visit': 'Last Visit',
+  'patient.list.table.actions': 'Actions',
+  'patient.list.button.new_patient': 'New Patient',
+
+  // Billing
+  'billing.title': 'Billing',
+  'billing.create.title': 'Create bill',
+  'billing.label.total': 'Total amount',
+  'billing.label.payment_method': 'Payment method',
+  'billing.label.cash': 'Cash', 'billing.label.card': 'Card',
+  'billing.label.upi': 'UPI', 'billing.label.online': 'Online',
+  'billing.label.pending': 'Pending',
+  'billing.print.bill_number': 'Bill No.',
+  'billing.print.date': 'Date',
+  'billing.print.patient': 'Patient',
+  'billing.print.amount_words': 'Amount in words',
+
+  // OPD Queue
+  'opd.title': 'OPD Queue',
+  'opd.token': 'Token',
+  'opd.waiting': 'Waiting',
+  'opd.in_consultation': 'In Consultation',
+  'opd.completed': 'Completed',
+
+  // Doctor Dashboard
+  'doctor.title': 'Doctor Dashboard',
+  'doctor.my_patients': 'My Patients Today',
+  'doctor.start_consultation': 'Start Consultation',
+
+  // Appointments
+  'appointments.title': 'Appointments',
+  'appointments.new': 'New Appointment',
+  'appointments.select_doctor': 'Select doctor',
+  'appointments.select_date': 'Select date',
+  'appointments.select_slot': 'Select time slot',
+
+  // Pharmacy
+  'pharmacy.title': 'Pharmacy',
+  'pharmacy.dispense': 'Dispense',
+  'pharmacy.stock': 'Stock',
+
+  // LIS
+  'lis.title': 'Laboratory',
+  'lis.sample_collection': 'Sample Collection',
+  'lis.results_entry': 'Results Entry',
+  'lis.verification': 'Verification',
+
+  // Reports
+  'reports.title': 'Reports',
+  'reports.collection': 'Collection Report',
+  'reports.daily': 'Daily',
+  'reports.monthly': 'Monthly',
+
+  // Settings
+  'settings.title': 'Settings',
+  'settings.language': 'Language',
+  'settings.change_language': 'Change language',
+
+  // Errors
+  'error.phone_required.title': 'Phone number is required',
+  'error.phone_required.message': "Please enter the patient's 10-digit mobile number to continue registration.",
+  'error.name_required.title': 'Patient name is required',
+  'error.name_required.message': "Please enter the patient's first name.",
+  'error.doctor_required.title': 'Please select a doctor',
+  'error.doctor_required.message': 'Choose a doctor from the list before creating a visit.',
+  'error.age_invalid.title': 'Please enter a valid age',
+  'error.age_invalid.message': 'Age must be a number between 0 and 150.',
+  'error.duplicate_patient.title': 'This patient may already exist',
+  'error.duplicate_patient.message': 'A patient with this phone number is already registered.',
+  'error.session_expired.title': 'Your session has expired',
+  'error.session_expired.message': 'Please login again to continue. Your work has been saved.',
+  'error.no_permission.title': "You don't have permission",
+  'error.no_permission.message': 'Only authorized staff can perform this action. Contact your administrator.',
+  'error.server_error.title': 'Something went wrong',
+  'error.server_error.message': "We're looking into it. Please try again in a few minutes.",
+  'error.connection_error.title': 'Server is temporarily unavailable',
+  'error.connection_error.message': 'Please wait a moment and try again.',
+  'error.network_error.title': 'Check your internet connection',
+  'error.network_error.message': 'Could not reach the server. Please check your internet and try again.',
+  'error.bill_save_failed.title': 'Could not save the bill',
+  'error.bill_save_failed.message': 'Please check all fields and try again.',
+  'error.appointment_conflict.title': 'This slot is already booked',
+  'error.appointment_conflict.message': 'Please choose a different time slot.',
+  'error.stock_insufficient.title': 'Not enough stock available',
+  'error.stock_insufficient.message': 'Check available quantity and adjust.',
+
+  // Success
+  'success.patient_registered.title': 'Patient registered successfully',
+  'success.patient_registered.message': 'UHID: {uhid}. You can now create a visit for this patient.',
+  'success.bill_created.title': 'Bill created',
+  'success.bill_created.message': 'Bill #{bill_number} for ₹{amount}. Print or send on WhatsApp.',
+  'success.appointment_booked.title': 'Appointment confirmed',
+  'success.appointment_booked.message': '{doctor_name}, {date} at {time}. Patient notified.',
+  'success.prescription_saved.title': 'Prescription saved',
+  'success.prescription_saved.message': '{count} medicines prescribed. Ready for pharmacy.',
+  'success.visit_created.title': 'Visit added to queue',
+  'success.visit_created.message': 'Token #{token}. {doctor_name}, {department}.',
+  'success.saved': 'Saved successfully',
+  'success.deleted': 'Deleted successfully',
+  'success.updated': 'Updated successfully',
+
+  // Warning
+  'warning.low_stock.title': 'Medicine is low in stock',
+  'warning.low_stock.message': 'Only {count} units of {medicine} remaining. Consider reordering.',
+  'warning.expiring_batch.title': 'Medicine expiring soon',
+  'warning.expiring_batch.message': '{medicine} batch expires on {date}.',
+  'warning.duplicate_patient.title': 'Similar patient found',
+  'warning.duplicate_patient.message': 'A patient named {name} with phone {phone} exists. Is this the same person?',
+  'warning.overdue_payment.title': 'Payment pending for 30+ days',
+  'warning.overdue_payment.message': 'Bill #{bill} (₹{amount}) is overdue. Send reminder?',
+
+  // Info
+  'info.previous_visit.title': 'Patient has a previous visit',
+  'info.previous_visit.message': 'Last visited on {date} with {doctor} ({department}).',
+  'info.schedule_change.title': 'Doctor schedule updated',
+  'info.schedule_change.message': '{doctor} is unavailable on {date}.',
+
+  // Mandatory / Clinical
+  'mandatory.drug_interaction.title': 'Drug interaction alert',
+  'mandatory.drug_interaction.message': '{drug1} + {drug2}: {risk}. Review carefully before proceeding.',
+  'mandatory.critical_lab.title': 'Critical lab value detected',
+  'mandatory.critical_lab.message': '{test}: {value} {unit} is outside safe range ({range}). Inform the doctor immediately.',
+
+  // Language selector
+  'language.choose_title': 'Choose your language',
+  'language.choose_subtitle': 'Select the language you prefer. This is your personal setting — other staff are not affected.',
+  'language.continue_in': 'Continue in {language}',
+  'language.change_anytime': 'You can change this anytime from Settings',
+  'language.patient_language_hint': 'This language will be used for prescriptions, bills, and WhatsApp messages to this patient'
+};
+
+function t(key, params) {
+  var text = langData[key] || LANG_EN[key] || key;
+  if (params) {
+    Object.keys(params).forEach(function(k) {
+      text = text.replace('{' + k + '}', params[k]);
+    });
+  }
+  return text;
+}
+
+function loadLanguage(lang) {
+  appLang = lang;
+  localStorage.setItem('hemato_lang', lang);
+  var langInfo = LANGUAGES.find(function(l) { return l.code === lang; });
+  if (langInfo && langInfo.dir === 'rtl') {
+    document.body.setAttribute('dir', 'rtl');
+    document.body.style.textAlign = 'right';
+  } else {
+    document.body.setAttribute('dir', 'ltr');
+    document.body.style.textAlign = 'left';
+  }
+  return api.get('/api/i18n/' + lang).then(function(data) {
+    langData = data || {};
+  }).catch(function() {
+    langData = {};
+  });
+}
+
+/* ===========================================================
    AUTH FUNCTIONS
    =========================================================== */
 function showAuthPanel(panelId) {
