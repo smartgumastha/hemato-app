@@ -6621,21 +6621,66 @@ function saveBill() {
 
   var pid = billPatientData ? String(billPatientData.patient_id || billPatientData.id) : null;
   var patName = billPatientData ? ((billPatientData.first_name || '') + ' ' + (billPatientData.last_name || '')).trim() : 'Walk-in';
+  var branchId = (document.getElementById('billBranchSelect') || {}).value || '';
+  var discInputVal = Number((document.getElementById('billDiscountInput') || {}).value) || 0;
+  var discModeEl = document.getElementById('discModeAmt');
+  var discMode = (discModeEl && discModeEl.classList.contains('active')) ? 'flat' : 'percent';
+  var gstToggle = document.getElementById('billGstToggle');
+  var gstEnabled = gstToggle ? gstToggle.checked : false;
+  var walletCheck = document.getElementById('billUseWallet');
+  var walletUsed = walletCheck ? walletCheck.checked : false;
+  var walletDeductEl = document.getElementById('billWalletDeduct');
+  var walletAmount = 0;
+  if (walletUsed && walletDeductEl) {
+    walletAmount = Number((walletDeductEl.textContent || '0').replace(/[^\d.]/g, '')) || 0;
+  }
+  var patAge = null;
+  var patGender = null;
+  var patPhone = null;
+  var patAddress = null;
+  if (billPatientData) {
+    patAge = billPatientData.age || null;
+    patGender = billPatientData.gender || null;
+    patPhone = billPatientData.phone || null;
+    patAddress = billPatientData.address || null;
+  }
+
   var body = {
-    patient_id:     pid,
-    patient_name:   patName,
-    items:          billItems.map(function(it) { return { desc: it.desc, qty: it.qty, rate: it.rate, gst_pct: it.gstPct }; }),
-    subtotal:       subtotal,
-    discount:       discount,
-    gst_amount:     totalGST,
-    cgst:           totalGST / 2,
-    sgst:           totalGST / 2,
-    total_amount:   total,
-    amount_paid:    paid,
-    balance:        Math.max(0, total - paid),
-    payment_mode:   billPayMode,
-    payment_status: payStatus,
-    notes:          notesVal || null
+    patient_id:       pid,
+    patient_name:     patName,
+    patient_age:      patAge,
+    patient_gender:   patGender,
+    patient_phone:    patPhone,
+    patient_address:  patAddress,
+    patient_state:    '36-Telangana',
+    branch_id:        branchId || null,
+    items:            billItems.map(function(it) { return { desc: it.desc, qty: it.qty, rate: it.rate, gst_pct: it.gstPct, hsn: it.hsn || '' }; }),
+    subtotal:         subtotal,
+    discount_amount:  discount,
+    discount:         discount,
+    discount_type:    discMode,
+    discount_percent: discMode === 'percent' ? discInputVal : 0,
+    gst_applicable:   gstEnabled,
+    tax_amount:       totalGST,
+    gst_amount:       totalGST,
+    cgst_amount:      totalGST / 2,
+    cgst:             totalGST / 2,
+    sgst_amount:      totalGST / 2,
+    sgst:             totalGST / 2,
+    igst_amount:      0,
+    total:            total,
+    total_amount:     total,
+    amount_paid:      paid,
+    amount_balance:   Math.max(0, total - paid - walletAmount),
+    balance:          Math.max(0, total - paid - walletAmount),
+    amount_from_wallet: walletAmount,
+    payment_mode:     billPayMode,
+    payment_status:   payStatus,
+    hsn_sac_code:     '999312',
+    place_of_supply:  '36-Telangana',
+    amount_in_words:  amountInWords(total),
+    terms:            ((appState.hospital || {}).bill_terms || (appState.hospital || {}).terms || 'Thanks for visiting! Get well soon.'),
+    notes:            notesVal || null
   };
 
   var saveBtn = document.querySelector('#billPOSView .btn-primary');
@@ -6646,6 +6691,10 @@ function saveBill() {
       var bill = data.bill || data;
       showToast('Bill saved! ' + (bill.bill_number || ''), 'success');
       var printData = Object.assign({}, bill);
+      printData.branch_id = branchId;
+      printData.amount_in_words = amountInWords(printData.total || printData.total_amount || total);
+      printData.discount_amount = discount;
+      printData.amount_from_wallet = walletAmount;
       if (!printData.items || (typeof printData.items === 'string' && printData.items === '[]')) {
         printData.items = billItems.map(function(it) { return { desc: it.desc, qty: it.qty, rate: it.rate, gst_pct: it.gstPct }; });
       }
@@ -6844,31 +6893,6 @@ function printBillReceipt() {
 }
 
 /* ── Print Bill HTML ────────────────────────────────────────────── */
-function numberToWords(num) {
-  var ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
-  var tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
-  if (num === 0) return 'Zero';
-  var result = '';
-  if (Math.floor(num / 10000000) > 0) { result += numberToWords(Math.floor(num / 10000000)) + ' Crore '; num = num % 10000000; }
-  if (Math.floor(num / 100000) > 0) { result += numberToWords(Math.floor(num / 100000)) + ' Lakh '; num = num % 100000; }
-  if (Math.floor(num / 1000) > 0) { result += numberToWords(Math.floor(num / 1000)) + ' Thousand '; num = num % 1000; }
-  if (Math.floor(num / 100) > 0) { result += ones[Math.floor(num / 100)] + ' Hundred '; num = num % 100; }
-  if (num > 0) {
-    if (result !== '') result += 'and ';
-    if (num < 20) { result += ones[num]; }
-    else { result += tens[Math.floor(num / 10)]; if (num % 10 > 0) result += ' ' + ones[num % 10]; }
-  }
-  return result.trim();
-}
-
-function amountToWords(amount) {
-  var rupees = Math.floor(amount);
-  var paise = Math.round((amount - rupees) * 100);
-  var words = 'Rupees ' + numberToWords(rupees);
-  if (paise > 0) words += ' and ' + numberToWords(paise) + ' Paise';
-  return words + ' Only';
-}
-
 function formatBillDateTime(ts) {
   var n = Number(ts || Date.now());
   if (n > 0 && n < 9999999999) n = n * 1000;
@@ -6934,7 +6958,7 @@ function printBillHTML(printData) {
   if (!txnRef && printData.notes) { var txnM = (printData.notes || '').match(/Txn:\s*(\S+)/); if (txnM) txnRef = txnM[1]; }
 
   /* Amount in words */
-  var wordsStr = amountToWords(total);
+  var wordsStr = amountInWords(total);
 
   var itemsHtml = '';
   for (var i = 0; i < items.length; i++) {
