@@ -6926,56 +6926,101 @@ function formatBillDateTime(ts) {
   return day + '/' + month + '/' + year + ', ' + hours + ':' + mins + ' ' + ampm;
 }
 
-function printBillHTML(printData) {
+function printBillHTML(printData, overrides) {
+  var ov = overrides || {};
   var h = appState.hospital || {};
-  var printFormat = h.print_format || 'a5';
-  var pageWidth = printFormat === 'thermal' ? '80mm' : '148mm';
-  var pageHeight = printFormat === 'thermal' ? 'auto' : '210mm';
 
-  var logoHtml = '';
-  if (h.logo_url || h.logo) {
-    logoHtml = '<img src="' + (h.logo_url || h.logo) + '" style="max-height:50px;max-width:180px;display:block;margin:0 auto 8px;">';
+  /* Format settings — action bar overrides > hospital defaults */
+  var printFormat = ov.format || h.print_format || 'a5';
+  var billStyle = ov.style || h.bill_style || 'clean';
+  var billLang = ov.language || h.bill_language || 'en';
+
+  var formatSpecs = {
+    a4: { width: '210mm', height: '297mm', fontSize: 12, titleSize: 18, qrSize: 80, margins: '15mm' },
+    a5: { width: '148mm', height: '210mm', fontSize: 11, titleSize: 16, qrSize: 65, margins: '10mm' },
+    thermal: { width: '80mm', height: 'auto', fontSize: 10, titleSize: 14, qrSize: 50, margins: '3mm', fontFamily: "'Courier New',monospace" }
+  };
+  var spec = formatSpecs[printFormat] || formatSpecs.a5;
+
+  /* Style settings */
+  var isGrid = billStyle === 'grid';
+  var isThermal = billStyle === 'compact' || printFormat === 'thermal';
+  var borderStyle = isGrid ? '1px solid #333' : '0.5px solid #ddd';
+  var headerBorder = isGrid ? '2px solid #333' : '1.5px solid #1a1a1a';
+  var cellBorder = isGrid ? '0.5px solid #ccc' : 'none';
+  var cellPadding = isGrid ? '6px 8px' : '7px 4px';
+  var headerBg = isGrid ? '#f5f5f5' : 'transparent';
+
+  /* Normalize fields */
+  var items = printData.items || [];
+  if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
+  var billNumber = printData.bill_number || printData.billNumber || 'DRAFT';
+  var billDate = '';
+  if (printData.created_at) {
+    var ts = Number(printData.created_at);
+    if (ts > 0 && ts < 9999999999) ts = ts * 1000;
+    var d = new Date(ts);
+    billDate = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
   }
+  var patientName = printData.patient_name || printData.patientName || 'Walk-in';
+  var uhid = printData.uhid || printData.patient_uhid || printData.mrn || '';
+  var patAge = printData.age || printData.patient_age || '';
+  var patGender = printData.gender || printData.patient_gender || '';
+  if (patGender) patGender = patGender.charAt(0).toUpperCase();
+  var patPhone = printData.patient_phone || '';
+  var patAddress = printData.patient_address || '';
+  var subtotal = Number(printData.subtotal || 0);
+  var discount = Number(printData.discount_amount || printData.discount || 0);
+  var gstAmount = Number(printData.tax_amount || printData.gst_amount || printData.gst || 0);
+  var cgst = Number(printData.cgst_amount || printData.cgst || gstAmount / 2);
+  var sgst = Number(printData.sgst_amount || printData.sgst || gstAmount / 2);
+  var total = Number(printData.total || printData.total_amount || 0);
+  var paid = Number(printData.amount_paid || printData.paid || 0);
+  var walletUsed = Number(printData.amount_from_wallet || 0);
+  var balance = Number(printData.amount_balance || printData.balance || Math.max(0, total - paid));
+  var paymentMode = printData.payment_mode || printData.paymentMode || 'Cash';
+  var paymentStatus = printData.payment_status || 'pending';
+  var wordsStr = amountInWords(total);
+  var terms = printData.terms || h.bill_terms || h.terms || 'Thanks for visiting! Get well soon.';
+  var signatory = h.signatory_name || h.signatory || '';
+  var hospitalName = h.name || h.business_name || (appState.loginData || {}).hospital_name || 'Hospital';
+  var tagline = h.tagline || '';
+  var gstin = h.gstin || '';
+  var regNum = h.reg_number || h.registration_number || '';
 
-  var hospitalName = h.name || (appState.loginData || {}).hospital_name || 'Hospital';
-  var tagline = h.tagline ? '<div style="font-size:10px;color:#666;font-style:italic;text-align:center;margin-bottom:4px;">' + h.tagline + '</div>' : '';
-
-  var addressParts = [];
-  if (h.address) addressParts.push(h.address);
-  if (h.city) addressParts.push(h.city);
-  if (h.state) addressParts.push(h.state);
-  if (h.pincode) addressParts.push(h.pincode);
-  var addressLine = addressParts.length ? '<div style="font-size:10px;color:#444;text-align:center;">' + addressParts.join(', ') + '</div>' : '';
+  /* Address */
+  var addrParts = [];
+  if (h.address || h.address_line1) addrParts.push(h.address || h.address_line1);
+  if (h.city) addrParts.push(h.city);
+  if (h.state) addrParts.push(h.state);
+  if (h.pincode) addrParts.push(h.pincode);
+  var addressStr = addrParts.join(', ');
 
   var contactParts = [];
   if (h.phone) contactParts.push('Ph: ' + h.phone);
   if (h.email) contactParts.push(h.email);
-  var contactLine = contactParts.length ? '<div style="font-size:10px;color:#444;text-align:center;margin-bottom:4px;">' + contactParts.join(' | ') + '</div>' : '';
+  var contactStr = contactParts.join(' | ');
 
-  var placeOfSupply = h.state ? '<div style="font-size:9px;color:#666;text-align:center;margin-bottom:8px;">Place of Supply: ' + h.state + '</div>' : '';
+  /* Logo */
+  var logoHtml = '';
+  if (h.logo_url || h.logo || h.website_logo_url) {
+    logoHtml = '<img src="' + (h.logo_url || h.logo || h.website_logo_url) + '" style="max-height:50px;max-width:180px;">';
+  }
 
-  /* Normalize field names */
-  var items = printData.items || [];
-  if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
-  var billNumber = printData.billNumber || printData.bill_number || 'DRAFT';
-  var billDate = formatBillDateTime(printData.created_at || printData.bill_date);
-  var patientName = printData.patientName || printData.patient_name || 'Walk-in';
-  var uhid = printData.uhid || printData.patient_uhid || printData.mrn || '';
-  var patAge = printData.age || printData.patient_age || '';
-  var patGender = printData.gender || printData.patient_gender || '';
-  if (patGender) { patGender = patGender.charAt(0).toUpperCase(); if (patGender !== 'M' && patGender !== 'F') patGender = patGender; }
-  var subtotal = Number(printData.subtotal || 0);
-  var discount = Number(printData.discount || 0);
-  var gstAmount = Number(printData.gst || printData.gst_amount || 0);
-  var total = Number(printData.total || printData.total_amount || 0);
-  var paid = Number(printData.paid || printData.amount_paid || 0);
-  var balance = Number(printData.balance || 0);
-  var paymentMode = printData.paymentMode || printData.payment_mode || 'Cash';
-  var txnRef = printData.transaction_ref || '';
-  if (!txnRef && printData.notes) { var txnM = (printData.notes || '').match(/Txn:\s*(\S+)/); if (txnM) txnRef = txnM[1]; }
+  /* QR Code */
+  var qrHash = printData.qr_hash || '';
+  var qrUrl = qrHash ? 'https://medihost.in/verify/' + qrHash : '';
+  var qrImgHtml = '';
+  if (qrHash) {
+    qrImgHtml = '<div style="text-align:center;">' +
+      '<img src="https://api.qrserver.com/v1/create-qr-code/?size=' + spec.qrSize + 'x' + spec.qrSize + '&data=' + encodeURIComponent(qrUrl) + '" style="width:' + spec.qrSize + 'px;height:' + spec.qrSize + 'px;border:1px solid #ddd;border-radius:4px;">' +
+      '<div style="font-size:7px;color:#999;margin-top:2px;">Scan to verify</div></div>';
+  }
 
-  /* Amount in words */
-  var wordsStr = amountInWords(total);
+  /* Items HTML */
+  var hasHsn = false;
+  for (var hi2 = 0; hi2 < items.length; hi2++) { if (items[hi2].hsn || items[hi2].sac) { hasHsn = true; break; } }
+  var colCount = hasHsn ? 6 : 5;
 
   var itemsHtml = '';
   for (var i = 0; i < items.length; i++) {
@@ -6986,107 +7031,154 @@ function printBillHTML(printData) {
     var gstPct = item.gst_pct || item.gstPct || 0;
     var hsn = item.hsn || item.sac || '';
     itemsHtml += '<tr>' +
-      '<td style="padding:4px 6px;border-bottom:1px solid #eee;font-size:12px;">' + (i + 1) + '</td>' +
-      '<td style="padding:4px 6px;border-bottom:1px solid #eee;font-size:12px;">' + (item.desc || item.description || item.name || '-') + (gstPct > 0 ? ' <small>(' + gstPct + '%)</small>' : '') + '</td>' +
-      (hsn ? '<td style="padding:4px 6px;border-bottom:1px solid #eee;font-size:10px;color:#666;">' + hsn + '</td>' : '') +
-      '<td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:center;font-size:12px;">' + qty + '</td>' +
-      '<td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:right;font-size:12px;">\u20B9' + Number(rate).toLocaleString('en-IN') + '</td>' +
-      '<td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:right;font-size:12px;">\u20B9' + Number(amt).toLocaleString('en-IN') + '</td>' +
+      '<td style="padding:' + cellPadding + ';border-bottom:' + cellBorder + ';font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border-right:' + cellBorder + ';' : '') + '">' + (i+1) + '</td>' +
+      '<td style="padding:' + cellPadding + ';border-bottom:' + cellBorder + ';font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border-right:' + cellBorder + ';' : '') + '">' + (item.desc || item.description || item.name || '-') + (gstPct > 0 ? ' <small>(' + gstPct + '%)</small>' : '') + '</td>' +
+      (hasHsn ? '<td style="padding:' + cellPadding + ';border-bottom:' + cellBorder + ';font-size:10px;color:#666;' + (isGrid ? 'border-right:' + cellBorder + ';' : '') + '">' + hsn + '</td>' : '') +
+      '<td style="padding:' + cellPadding + ';border-bottom:' + cellBorder + ';text-align:center;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border-right:' + cellBorder + ';' : '') + '">' + qty + '</td>' +
+      '<td style="padding:' + cellPadding + ';border-bottom:' + cellBorder + ';text-align:right;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border-right:' + cellBorder + ';' : '') + '">\u20B9' + Number(rate).toLocaleString('en-IN') + '</td>' +
+      '<td style="padding:' + cellPadding + ';border-bottom:' + cellBorder + ';text-align:right;font-size:' + spec.fontSize + 'px;">\u20B9' + Number(amt).toLocaleString('en-IN') + '</td>' +
       '</tr>';
   }
 
-  /* Check if any item has HSN/SAC */
-  var hasHsn = false;
-  for (var hi = 0; hi < items.length; hi++) { if (items[hi].hsn || items[hi].sac) { hasHsn = true; break; } }
-  var colCount = hasHsn ? 6 : 5;
+  /* Payment status badge */
+  var statusColor = paymentStatus === 'paid' ? '#059669' : paymentStatus === 'partial' ? '#d97706' : '#dc2626';
+  var statusLabel = paymentStatus.charAt(0).toUpperCase() + paymentStatus.slice(1);
 
-  var discountHtml = '';
-  if (discount > 0) {
-    discountHtml = '<tr><td colspan="' + (colCount - 1) + '" style="text-align:right;padding:4px 6px;font-size:12px;color:#dc2626;">Discount:</td><td style="text-align:right;padding:4px 6px;font-size:12px;color:#dc2626;">-\u20B9' + discount.toLocaleString('en-IN') + '</td></tr>';
-  }
-
-  var gstHtml = '';
-  if (gstAmount > 0) {
-    gstHtml = '<tr><td colspan="' + (colCount - 1) + '" style="text-align:right;padding:4px 6px;font-size:12px;">CGST:</td><td style="text-align:right;padding:4px 6px;font-size:12px;">\u20B9' + (gstAmount / 2).toFixed(2) + '</td></tr>';
-    gstHtml += '<tr><td colspan="' + (colCount - 1) + '" style="text-align:right;padding:4px 6px;font-size:12px;">SGST:</td><td style="text-align:right;padding:4px 6px;font-size:12px;">\u20B9' + (gstAmount / 2).toFixed(2) + '</td></tr>';
-  }
-
-  var txnHtml = txnRef ? '<div style="font-size:10px;color:#444;text-align:center;">Txn Ref: ' + txnRef + '</div>' : '';
-  var paidHtml = '';
-  if (paid > 0 && paid < total) {
-    paidHtml = '<div style="font-size:11px;text-align:center;color:#444;">Paid: \u20B9' + paid.toLocaleString('en-IN') + ' | Balance: \u20B9' + balance.toLocaleString('en-IN') + '</div>';
-  }
-
-  var footerText = h.bill_footer || 'Thank you for your visit!';
-  var termsText = h.bill_terms || '';
-  var gstinText = h.gstin ? '<div style="font-size:9px;color:#888;text-align:center;margin-top:8px;">GSTIN: ' + h.gstin + '</div>' : '';
-  var regText = h.reg_number ? '<div style="font-size:9px;color:#888;text-align:center;">Reg No: ' + h.reg_number + '</div>' : '';
-
-  /* Patient details row */
-  var patRow1 = '<div style="font-size:12px;"><strong>Patient:</strong> ' + patientName + '</div>';
-  var patRow2 = uhid ? '<div style="font-size:12px;"><strong>UHID:</strong> ' + uhid + '</div>' : '';
-  var patRow3 = patAge ? '<div style="font-size:12px;"><strong>Age:</strong> ' + patAge + (typeof patAge === 'number' ? ' Yrs' : '') + '</div>' : '';
-  var patRow4 = patGender ? '<div style="font-size:12px;"><strong>Sex:</strong> ' + patGender + '</div>' : '';
-
-  /* QR Code for bill verification */
-  var qrHash = printData.qr_hash || '';
-  var qrUrl = qrHash ? 'https://medihost.in/verify/' + qrHash : '';
-  var qrImgHtml = '';
-  if (qrHash) {
-    qrImgHtml = '<div style="position:absolute;top:12px;right:12px;text-align:center;">' +
-      '<img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=' + encodeURIComponent(qrUrl) + '" style="width:70px;height:70px;border:1px solid #ddd;border-radius:4px;" alt="QR">' +
-      '<div style="font-size:7px;color:#999;margin-top:2px;">Scan to verify</div>' +
-      '</div>';
-  }
-
+  /* ============ BUILD HTML ============ */
   var html = '<!DOCTYPE html><html><head><title>Bill ' + billNumber + '</title>' +
-    '<style>@media print { @page { size: ' + pageWidth + ' ' + pageHeight + '; margin: 8mm; } body { margin:0; } }</style>' +
-    '</head><body style="font-family:Arial,sans-serif;max-width:' + pageWidth + ';margin:0 auto;padding:12px;position:relative;">' + qrImgHtml +
-    '<div style="text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#333;margin-bottom:6px;">Tax Invoice</div>' +
-    logoHtml +
-    '<div style="text-align:center;font-size:16px;font-weight:700;margin-bottom:2px;">' + hospitalName + '</div>' +
-    tagline + addressLine + contactLine + placeOfSupply +
-    '<hr style="border:none;border-top:1px solid #333;margin:8px 0;">' +
-    '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">' +
-      '<div style="font-size:12px;"><strong>Bill #:</strong> ' + billNumber + '</div>' +
-      '<div style="font-size:12px;"><strong>Date:</strong> ' + billDate + '</div>' +
-    '</div>' +
-    '<div style="display:flex;justify-content:space-between;margin-bottom:2px;">' +
-      patRow1 + patRow2 +
-    '</div>' +
-    ((patAge || patGender) ? '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">' + patRow3 + patRow4 + '</div>' : '<div style="margin-bottom:8px;"></div>') +
-    '<table style="width:100%;border-collapse:collapse;">' +
-      '<thead><tr style="background:#f8f8f8;">' +
-        '<th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">#</th>' +
-        '<th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">Item</th>' +
-        (hasHsn ? '<th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">HSN/SAC</th>' : '') +
-        '<th style="padding:4px 6px;text-align:center;font-size:11px;border-bottom:2px solid #333;">Qty</th>' +
-        '<th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">Rate</th>' +
-        '<th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">Amount</th>' +
-      '</tr></thead><tbody>' + itemsHtml + '</tbody>' +
-      '<tfoot>' +
-        '<tr><td colspan="' + (colCount - 1) + '" style="text-align:right;padding:6px;font-size:12px;">Subtotal:</td><td style="text-align:right;padding:6px;font-size:12px;">\u20B9' + subtotal.toLocaleString('en-IN') + '</td></tr>' +
-        discountHtml + gstHtml +
-        '<tr style="border-top:2px solid #333;"><td colspan="' + (colCount - 1) + '" style="text-align:right;padding:6px;font-size:14px;font-weight:700;">TOTAL:</td><td style="text-align:right;padding:6px;font-size:14px;font-weight:700;">\u20B9' + total.toLocaleString('en-IN') + '</td></tr>' +
-        '<tr><td colspan="' + colCount + '" style="padding:6px;font-size:11px;font-style:italic;border-top:1px solid #eee;">Amount in words: ' + wordsStr + '</td></tr>' +
-      '</tfoot>' +
-    '</table>' +
-    '<div style="margin-top:8px;padding:6px;background:#f9f9f9;border-radius:4px;">' +
-      '<div style="font-size:11px;color:#444;text-align:center;">Paid via: ' + paymentMode.toUpperCase() + '</div>' +
-      txnHtml + paidHtml +
-    '</div>' +
-    (termsText ? '<div style="font-size:9px;color:#888;margin-top:8px;text-align:center;">' + termsText + '</div>' : '') +
-    '<div style="font-size:11px;color:#333;text-align:center;margin-top:12px;font-style:italic;">' + footerText + '</div>' +
-    gstinText + regText +
-    (qrUrl ? '<div style="text-align:center;margin-top:10px;padding-top:6px;border-top:1px dashed #ddd;"><div style="font-size:8px;color:#999;">Verify this bill at: ' + qrUrl + '</div></div>' : '') +
-    '<div style="text-align:center;margin-top:4px;font-size:8px;color:#ccc;">Powered by MediHost\u2122</div>' +
-    '</body></html>';
+    '<style>' +
+    '@media print { @page { size: ' + spec.width + ' ' + spec.height + '; margin: ' + spec.margins + '; } body { margin:0; } }' +
+    'body { font-family: ' + (spec.fontFamily || "'Segoe UI',Arial,sans-serif") + '; max-width: ' + spec.width + '; margin: 0 auto; padding: 12px; color: #1a1a1a; font-size: ' + spec.fontSize + 'px; line-height: 1.5; }' +
+    'table { width: 100%; border-collapse: collapse; }' +
+    '</style></head><body>';
 
+  if (isThermal) {
+    /* ===== THERMAL/COMPACT STYLE ===== */
+    html += '<div style="text-align:center;font-size:' + spec.titleSize + 'px;font-weight:700;">' + hospitalName + '</div>';
+    if (addressStr) html += '<div style="text-align:center;font-size:9px;color:#666;">' + addressStr + '</div>';
+    if (h.phone) html += '<div style="text-align:center;font-size:9px;color:#666;">Ph: ' + h.phone + '</div>';
+    html += '<div style="text-align:center;font-size:9px;color:#666;margin-bottom:6px;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
+    html += '<div style="font-size:10px;"><strong>Bill#:</strong> ' + billNumber + '  <strong>Date:</strong> ' + billDate + '</div>';
+    html += '<div style="font-size:10px;"><strong>Patient:</strong> ' + patientName + (uhid ? ' (' + uhid + ')' : '') + '</div>';
+    html += '<div style="font-size:9px;color:#666;margin:4px 0;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
+    for (var ti = 0; ti < items.length; ti++) {
+      var titem = items[ti];
+      var tqty = titem.qty || 1; var trate = titem.rate || 0;
+      html += '<div style="display:flex;justify-content:space-between;font-size:10px;"><span>' + (titem.desc || '-') + ' x' + tqty + '</span><span>\u20B9' + (tqty * trate).toLocaleString('en-IN') + '</span></div>';
+    }
+    html += '<div style="font-size:9px;margin:4px 0;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
+    if (discount > 0) html += '<div style="display:flex;justify-content:space-between;font-size:10px;"><span>Discount</span><span>-\u20B9' + discount.toLocaleString('en-IN') + '</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin:4px 0;"><span>TOTAL</span><span>\u20B9' + total.toLocaleString('en-IN') + '</span></div>';
+    html += '<div style="font-size:9px;font-style:italic;margin-bottom:4px;">' + wordsStr + '</div>';
+    html += '<div style="font-size:10px;">Paid: ' + paymentMode + ' \u20B9' + paid.toLocaleString('en-IN') + '</div>';
+    if (balance > 0) html += '<div style="font-size:10px;color:#b91c1c;font-weight:600;">Balance: \u20B9' + balance.toLocaleString('en-IN') + '</div>';
+    html += '<div style="font-size:9px;margin:6px 0;">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</div>';
+    if (qrHash) html += '<div style="text-align:center;margin:6px 0;">' + qrImgHtml + '</div>';
+    html += '<div style="text-align:center;font-size:8px;color:#999;">Thank you! Powered by MediHost\u2122</div>';
+
+  } else {
+    /* ===== A4/A5 \u2014 GRID or CLEAN STYLE ===== */
+
+    /* Header with logo + hospital info + QR */
+    html += '<div style="text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#555;margin-bottom:6px;">Tax Invoice</div>';
+
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:8px;border-bottom:' + headerBorder + ';">';
+    /* Left: logo + hospital */
+    html += '<div style="flex:1;">';
+    if (logoHtml) html += '<div style="margin-bottom:4px;">' + logoHtml + '</div>';
+    html += '<div style="font-size:' + spec.titleSize + 'px;font-weight:700;">' + hospitalName + '</div>';
+    if (tagline) html += '<div style="font-size:10px;color:#059669;font-style:italic;">' + tagline + '</div>';
+    if (addressStr) html += '<div style="font-size:10px;color:#666;">' + addressStr + '</div>';
+    if (contactStr) html += '<div style="font-size:10px;color:#666;">' + contactStr + '</div>';
+    if (gstin) html += '<div style="font-size:10px;font-weight:600;color:#444;margin-top:2px;">GSTIN: ' + gstin + '</div>';
+    if (regNum) html += '<div style="font-size:10px;color:#666;">Reg No: ' + regNum + '</div>';
+    html += '</div>';
+    /* Right: QR */
+    if (qrImgHtml) html += '<div style="margin-left:12px;">' + qrImgHtml + '</div>';
+    html += '</div>';
+
+    /* Two-column: Bill To | Invoice Details */
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:' + (isGrid ? borderStyle : '0.5px solid #ddd') + ';margin-top:8px;">';
+    /* Bill To */
+    html += '<div style="padding:8px 10px;' + (isGrid ? 'border-right:' + borderStyle + ';' : '') + '">';
+    html += '<div style="font-size:9px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Bill To</div>';
+    html += '<div style="font-size:' + spec.fontSize + 'px;font-weight:600;">' + patientName + '</div>';
+    if (patAge || patGender) html += '<div style="font-size:' + spec.fontSize + 'px;">' + (patAge ? patAge + ' Yrs' : '') + (patAge && patGender ? ' / ' : '') + (patGender || '') + '</div>';
+    if (uhid) html += '<div style="font-size:' + spec.fontSize + 'px;">UHID: ' + uhid + '</div>';
+    if (patPhone) html += '<div style="font-size:' + spec.fontSize + 'px;">Ph: ' + patPhone + '</div>';
+    if (patAddress) html += '<div style="font-size:' + spec.fontSize + 'px;color:#666;">' + patAddress + '</div>';
+    html += '</div>';
+    /* Invoice Details */
+    html += '<div style="padding:8px 10px;">';
+    html += '<div style="font-size:9px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Invoice Details</div>';
+    html += '<div style="font-size:' + spec.fontSize + 'px;"><strong>Bill No:</strong> <span style="color:#059669;font-weight:600;">' + billNumber + '</span></div>';
+    html += '<div style="font-size:' + spec.fontSize + 'px;"><strong>Date:</strong> ' + billDate + '</div>';
+    html += '<div style="font-size:' + spec.fontSize + 'px;"><strong>Place of Supply:</strong> ' + (printData.place_of_supply || h.state || '36-Telangana') + '</div>';
+    if (printData.branch_id || h.branch_name) html += '<div style="font-size:' + spec.fontSize + 'px;"><strong>Branch:</strong> ' + (h.branch_name || printData.branch_id || '') + '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    /* Items table */
+    html += '<table style="margin-top:8px;">';
+    html += '<thead><tr style="background:' + headerBg + ';">';
+    html += '<th style="padding:' + cellPadding + ';text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;color:#666;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">#</th>';
+    html += '<th style="padding:' + cellPadding + ';text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;color:#666;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Item</th>';
+    if (hasHsn) html += '<th style="padding:' + cellPadding + ';text-align:left;font-size:10px;font-weight:600;color:#666;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">HSN/SAC</th>';
+    html += '<th style="padding:' + cellPadding + ';text-align:center;font-size:10px;font-weight:600;color:#666;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Qty</th>';
+    html += '<th style="padding:' + cellPadding + ';text-align:right;font-size:10px;font-weight:600;color:#666;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Rate</th>';
+    html += '<th style="padding:' + cellPadding + ';text-align:right;font-size:10px;font-weight:600;color:#666;border-bottom:' + headerBorder + ';' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Amount</th>';
+    html += '</tr></thead><tbody>' + itemsHtml + '</tbody>';
+
+    /* Totals */
+    html += '<tfoot>';
+    html += '<tr><td colspan="' + (colCount-1) + '" style="text-align:right;padding:6px 8px;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Subtotal</td><td style="text-align:right;padding:6px 8px;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">\u20B9' + subtotal.toLocaleString('en-IN') + '</td></tr>';
+    if (discount > 0) html += '<tr><td colspan="' + (colCount-1) + '" style="text-align:right;padding:4px 8px;font-size:' + spec.fontSize + 'px;color:#dc2626;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Discount</td><td style="text-align:right;padding:4px 8px;font-size:' + spec.fontSize + 'px;color:#dc2626;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">-\u20B9' + discount.toLocaleString('en-IN') + '</td></tr>';
+    if (cgst > 0) {
+      html += '<tr><td colspan="' + (colCount-1) + '" style="text-align:right;padding:4px 8px;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">CGST</td><td style="text-align:right;padding:4px 8px;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">\u20B9' + cgst.toFixed(2) + '</td></tr>';
+      html += '<tr><td colspan="' + (colCount-1) + '" style="text-align:right;padding:4px 8px;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">SGST</td><td style="text-align:right;padding:4px 8px;font-size:' + spec.fontSize + 'px;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">\u20B9' + sgst.toFixed(2) + '</td></tr>';
+    }
+    html += '<tr style="border-top:' + headerBorder + ';"><td colspan="' + (colCount-1) + '" style="text-align:right;padding:8px;font-size:14px;font-weight:700;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">Grand Total</td><td style="text-align:right;padding:8px;font-size:14px;font-weight:700;color:#059669;' + (isGrid ? 'border:' + borderStyle + ';' : '') + '">\u20B9' + total.toLocaleString('en-IN') + '</td></tr>';
+    html += '</tfoot></table>';
+
+    /* Amount in words */
+    html += '<div style="padding:6px 8px;font-size:10px;font-style:italic;color:#555;border-top:0.5px solid #ddd;border-bottom:0.5px solid #ddd;margin-top:4px;">' + wordsStr + '</div>';
+
+    /* Payment section */
+    html += '<div style="padding:8px;margin-top:4px;">';
+    html += '<div style="display:flex;justify-content:space-between;font-size:' + spec.fontSize + 'px;"><span>Payment:</span><span style="font-weight:500;">' + paymentMode.toUpperCase() + '</span></div>';
+    if (walletUsed > 0) html += '<div style="display:flex;justify-content:space-between;font-size:' + spec.fontSize + 'px;color:#1d4ed8;"><span>From Wallet:</span><span>\u20B9' + walletUsed.toLocaleString('en-IN') + '</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;font-size:' + spec.fontSize + 'px;color:#059669;"><span>Received:</span><span>\u20B9' + paid.toLocaleString('en-IN') + '</span></div>';
+    if (balance > 0) html += '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:#b91c1c;margin-top:2px;"><span>Balance Due:</span><span>\u20B9' + balance.toLocaleString('en-IN') + '</span></div>';
+    html += '<div style="margin-top:4px;"><span style="font-size:10px;background:' + statusColor + ';color:#fff;padding:2px 8px;border-radius:4px;">' + statusLabel + '</span></div>';
+    html += '</div>';
+
+    /* Footer: terms + signature */
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:16px;padding-top:10px;border-top:' + headerBorder + ';">';
+    /* Terms left */
+    html += '<div style="font-size:8px;color:#999;max-width:50%;line-height:1.5;">';
+    if (terms) html += terms;
+    html += '</div>';
+    /* Signature right */
+    html += '<div style="text-align:center;">';
+    html += '<div style="width:120px;border-top:0.5px solid #999;margin-top:30px;padding-top:4px;font-size:10px;color:#666;">Authorized Signatory</div>';
+    if (signatory) html += '<div style="font-size:10px;color:#444;font-weight:500;">' + signatory + '</div>';
+    html += '<div style="font-size:9px;color:#888;margin-top:2px;">For ' + hospitalName + '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    /* Verification URL + MediHost footer */
+    if (qrUrl) html += '<div style="text-align:center;margin-top:10px;padding-top:6px;border-top:1px dashed #ddd;font-size:8px;color:#999;">Verify: ' + qrUrl + '</div>';
+    html += '<div style="text-align:center;margin-top:4px;font-size:8px;color:#ccc;">Powered by MediHost\u2122</div>';
+  }
+
+  html += '</body></html>';
+
+  /* Open print window */
   var win = window.open('', '_blank');
   if (win) {
     win.document.write(html);
     win.document.close();
-    setTimeout(function() { win.print(); }, 300);
+    setTimeout(function() { win.print(); }, 400);
   } else {
     showNotification('warning', 'Popup blocked', 'Please allow popups for this site to print receipts.');
   }
@@ -13019,27 +13111,30 @@ function renderActionBar(options) {
 
 function abPrint(docType, docId) {
   if (docType === 'bill') {
+    var fmt = document.getElementById('ab_printFormat') ? document.getElementById('ab_printFormat').value : 'a4';
+    var sty = document.getElementById('ab_printStyle') ? document.getElementById('ab_printStyle').value : 'clean';
+    var lng = document.getElementById('ab_printLang') ? document.getElementById('ab_printLang').value : 'en';
+    var overrides = { format: fmt, style: sty, language: lng };
     var bill = null;
     for (var i = 0; i < billCache.length; i++) {
       if (String(billCache[i].id) === String(docId)) { bill = billCache[i]; break; }
     }
     if (!bill && window._activeBillDetail) bill = window._activeBillDetail;
     if (bill) {
-      printBillHTML(bill);
+      printBillHTML(bill, overrides);
     } else {
       api.get(api.h('/bills/' + docId)).then(function(data) {
-        printBillHTML(data.bill || data);
+        printBillHTML(data.bill || data, overrides);
       }).catch(function() {
         showNotification('error', 'Could not load bill', 'Please try again.');
       });
     }
     return;
   }
-  var fmt = document.getElementById('ab_printFormat') ? document.getElementById('ab_printFormat').value : 'a4';
-  var style = document.getElementById('ab_printStyle') ? document.getElementById('ab_printStyle').value : 'grid';
-  var lang = document.getElementById('ab_printLang') ? document.getElementById('ab_printLang').value : 'en';
-  var url = API_BASE + '/' + docType + 's/' + docId + '/print?format=' + fmt + '&style=' + style + '&language=' + lang;
-  window.open(url, '_blank');
+  var fmt2 = document.getElementById('ab_printFormat') ? document.getElementById('ab_printFormat').value : 'a4';
+  var sty2 = document.getElementById('ab_printStyle') ? document.getElementById('ab_printStyle').value : 'grid';
+  var lng2 = document.getElementById('ab_printLang') ? document.getElementById('ab_printLang').value : 'en';
+  window.open(API_BASE + '/' + docType + 's/' + docId + '/print?format=' + fmt2 + '&style=' + sty2 + '&language=' + lng2, '_blank');
 }
 
 function abWhatsApp(docType, docId, phone) {
@@ -13052,26 +13147,30 @@ function abWhatsApp(docType, docId, phone) {
 
 function abPDF(docType, docId) {
   if (docType === 'bill') {
+    var fmt = document.getElementById('ab_printFormat') ? document.getElementById('ab_printFormat').value : 'a4';
+    var sty = document.getElementById('ab_printStyle') ? document.getElementById('ab_printStyle').value : 'clean';
+    var lng = document.getElementById('ab_printLang') ? document.getElementById('ab_printLang').value : 'en';
+    var overrides = { format: fmt, style: sty, language: lng };
     var bill = null;
     for (var i = 0; i < billCache.length; i++) {
       if (String(billCache[i].id) === String(docId)) { bill = billCache[i]; break; }
     }
     if (!bill && window._activeBillDetail) bill = window._activeBillDetail;
     if (bill) {
-      printBillHTML(bill);
+      printBillHTML(bill, overrides);
     } else {
       api.get(api.h('/bills/' + docId)).then(function(data) {
-        printBillHTML(data.bill || data);
+        printBillHTML(data.bill || data, overrides);
       }).catch(function() {
         showNotification('error', 'Could not load bill', 'Please try again.');
       });
     }
     return;
   }
-  var fmt = document.getElementById('ab_printFormat') ? document.getElementById('ab_printFormat').value : 'a4';
-  var style = document.getElementById('ab_printStyle') ? document.getElementById('ab_printStyle').value : 'grid';
-  var lang = document.getElementById('ab_printLang') ? document.getElementById('ab_printLang').value : 'en';
-  window.open(API_BASE + '/' + docType + 's/' + docId + '/print?format=' + fmt + '&style=' + style + '&language=' + lang + '&download=1', '_blank');
+  var fmt2 = document.getElementById('ab_printFormat') ? document.getElementById('ab_printFormat').value : 'a4';
+  var sty2 = document.getElementById('ab_printStyle') ? document.getElementById('ab_printStyle').value : 'grid';
+  var lng2 = document.getElementById('ab_printLang') ? document.getElementById('ab_printLang').value : 'en';
+  window.open(API_BASE + '/' + docType + 's/' + docId + '/print?format=' + fmt2 + '&style=' + sty2 + '&language=' + lng2 + '&download=1', '_blank');
 }
 
 function abEmail(docType, docId, email) {
