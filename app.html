@@ -2998,6 +2998,135 @@ function loadLanguage(lang) {
 }
 
 /* ===========================================================
+   NOTIFICATION SYSTEM — showNotification(), handleApiError()
+   =========================================================== */
+var suppressedNotifications = JSON.parse(localStorage.getItem('hemato_suppressed') || '{}');
+
+var NOTIF_COLORS = {
+  error:     { bg: '#fef2f2', border: '#fca5a5', strip: '#dc2626', icon: '!',  iconBg: '#fef2f2', iconColor: '#dc2626', titleColor: '#dc2626', btnBg: '#dc2626', btnText: 'OK' },
+  success:   { bg: '#f0fdf4', border: '#6ee7b7', strip: '#059669', icon: '\u2713', iconBg: '#f0fdf4', iconColor: '#059669', titleColor: '#059669', btnBg: '#059669', btnText: 'OK' },
+  warning:   { bg: '#fffbeb', border: '#fcd34d', strip: '#d97706', icon: '\u26A0', iconBg: '#fffbeb', iconColor: '#d97706', titleColor: '#d97706', btnBg: '#d97706', btnText: 'OK', canSuppress: true },
+  info:      { bg: '#eff6ff', border: '#93c5fd', strip: '#2563eb', icon: 'i',  iconBg: '#eff6ff', iconColor: '#2563eb', titleColor: '#2563eb', btnBg: '#2563eb', btnText: 'OK', canSuppress: true },
+  mandatory: { bg: '#f5f3ff', border: '#a78bfa', strip: '#7c3aed', icon: '\u26A0', iconBg: '#f5f3ff', iconColor: '#7c3aed', titleColor: '#7c3aed', btnBg: '#7c3aed', btnText: 'I understand', borderWidth: '2px' }
+};
+
+function showNotification(type, title, message, options) {
+  var opts = options || {};
+  var c = NOTIF_COLORS[type] || NOTIF_COLORS.info;
+
+  /* --- Suppression check (warning + info only) --- */
+  if (opts.suppressKey && suppressedNotifications[opts.suppressKey]) return;
+
+  /* --- Field highlighting --- */
+  if (opts.field) {
+    var fieldEl = document.getElementById(opts.field) || document.querySelector('[name="' + opts.field + '"]');
+    if (fieldEl) {
+      fieldEl.style.border = '2px solid #dc2626';
+      var existingHint = fieldEl.parentNode.querySelector('.notif-field-hint');
+      if (existingHint) existingHint.remove();
+      var hintDiv = document.createElement('div');
+      hintDiv.className = 'notif-field-hint';
+      hintDiv.style.cssText = 'display:flex;align-items:center;gap:4px;margin-top:4px;font-size:12px;color:#dc2626;';
+      hintDiv.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#dc2626;display:inline-block;flex-shrink:0"></span>' + message;
+      fieldEl.parentNode.appendChild(hintDiv);
+      var clearHandler = function() {
+        fieldEl.style.border = '';
+        var h = fieldEl.parentNode.querySelector('.notif-field-hint');
+        if (h) h.remove();
+        fieldEl.removeEventListener('focus', clearHandler);
+      };
+      fieldEl.addEventListener('focus', clearHandler);
+    }
+  }
+
+  /* --- Overlay --- */
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.2);z-index:10000;display:flex;align-items:center;justify-content:center;';
+
+  /* --- Card --- */
+  var card = document.createElement('div');
+  card.style.cssText = 'max-width:380px;width:90%;background:#fff;border-radius:12px;border:' + (c.borderWidth || '1.5px') + ' solid ' + c.border + ';overflow:hidden;';
+
+  /* Color strip */
+  var strip = document.createElement('div');
+  strip.style.cssText = 'height:4px;background:' + c.strip + ';';
+  card.appendChild(strip);
+
+  /* Body padding */
+  var body = document.createElement('div');
+  body.style.cssText = 'padding:24px 24px 20px;text-align:center;';
+
+  /* Icon circle */
+  var iconWrap = document.createElement('div');
+  iconWrap.style.cssText = 'width:44px;height:44px;border-radius:50%;background:' + c.iconBg + ';display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:20px;color:' + c.iconColor + ';font-weight:700;border:1.5px solid ' + c.border + ';';
+  iconWrap.textContent = c.icon;
+  body.appendChild(iconWrap);
+
+  /* Title */
+  var titleEl = document.createElement('div');
+  titleEl.style.cssText = 'font-size:16px;font-weight:500;color:' + c.titleColor + ';margin-bottom:6px;';
+  titleEl.textContent = title;
+  body.appendChild(titleEl);
+
+  /* Message */
+  var msgEl = document.createElement('div');
+  msgEl.style.cssText = 'font-size:14px;color:#64748b;line-height:1.6;max-width:320px;margin:0 auto 20px;';
+  msgEl.textContent = message;
+  body.appendChild(msgEl);
+
+  /* OK button */
+  var btn = document.createElement('button');
+  btn.style.cssText = 'width:100%;padding:10px;border-radius:8px;background:' + c.btnBg + ';color:#fff;font-size:14px;font-weight:500;border:none;cursor:pointer;height:44px;';
+  btn.textContent = c.btnText;
+  body.appendChild(btn);
+
+  /* "Don't show again" checkbox — warning + info only */
+  var checkbox = null;
+  if (c.canSuppress && opts.suppressKey) {
+    var suppressWrap = document.createElement('label');
+    suppressWrap.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;cursor:pointer;';
+    checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.style.cssText = 'width:14px;height:14px;cursor:pointer;';
+    var suppressLabel = document.createElement('span');
+    suppressLabel.style.cssText = 'font-size:12px;color:#94a3b8;';
+    suppressLabel.textContent = t('common.dont_show_again');
+    suppressWrap.appendChild(checkbox);
+    suppressWrap.appendChild(suppressLabel);
+    body.appendChild(suppressWrap);
+  }
+
+  card.appendChild(body);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  /* --- Dismiss handler --- */
+  btn.addEventListener('click', function() {
+    /* Suppress if checked */
+    if (checkbox && checkbox.checked && opts.suppressKey) {
+      suppressedNotifications[opts.suppressKey] = true;
+      localStorage.setItem('hemato_suppressed', JSON.stringify(suppressedNotifications));
+    }
+    /* Mandatory audit log */
+    if (type === 'mandatory') {
+      console.log('AUDIT: mandatory notification acknowledged — ' + title + ' — ' + new Date().toISOString());
+    }
+    overlay.remove();
+    if (typeof opts.onOk === 'function') opts.onOk();
+  });
+}
+
+function handleApiError(response) {
+  if (response && response.error) {
+    var e = response.error;
+    var type = e.type === 'mandatory' ? 'mandatory' : 'error';
+    showNotification(type, e.title || t('error.server_error.title'), e.message || t('error.server_error.message'), { field: e.field });
+  } else {
+    showNotification('error', t('error.server_error.title'), t('error.server_error.message'));
+  }
+}
+
+/* ===========================================================
    AUTH FUNCTIONS
    =========================================================== */
 function showAuthPanel(panelId) {
