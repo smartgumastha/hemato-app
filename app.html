@@ -1836,6 +1836,7 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
         <!-- Settings Tab Bar -->
         <div style="overflow-x:auto;white-space:nowrap;padding:8px 0;margin-bottom:20px">
           <button class="stab active" id="settingsTabBtn_general" onclick="switchSettingsTab('general')">General</button>
+          <button class="stab" id="settingsTabBtn_branches" onclick="switchSettingsTab('branches')">Branches</button>
           <button class="stab" id="settingsTabBtn_billing" onclick="switchSettingsTab('billing')">Billing</button>
           <button class="stab" id="settingsTabBtn_emr" onclick="switchSettingsTab('emr')">EMR</button>
           <button class="stab" id="settingsTabBtn_pharmacy" onclick="switchSettingsTab('pharmacy')">Pharmacy</button>
@@ -1987,6 +1988,20 @@ tr.bill-row-cancelled td{text-decoration:line-through;color:#9CA3AF}
             <div class="form-group"><label>Auto-schedule follow-up</label><label class="tog"><input type="checkbox" id="setPhysioFollowup"><span class="tog-slider"></span></label></div>
             <div class="form-group"><label>Follow-up interval (days)</label><input type="number" id="setPhysioInterval" value="3" min="1" max="30"></div>
             <button class="btn btn-primary" onclick="saveTabSettings('physio')">Save Physio Settings</button>
+          </div>
+        </div>
+
+        <!-- ═══ TAB: Branches ═══ -->
+        <div id="settingsTab_branches" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div>
+              <div style="font-size:16px;font-weight:600">Hospital Branches</div>
+              <div style="font-size:13px;color:var(--mw-text-3)">Manage branches for multi-location billing and reports</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openBranchModal()">+ Add Branch</button>
+          </div>
+          <div id="branchesListContainer">
+            <div style="text-align:center;padding:40px;color:var(--mw-text-3)">Loading branches...</div>
           </div>
         </div>
 
@@ -3844,6 +3859,7 @@ function loadApp() {
       initPatientFormLabels();
       renderSidebar();
       loadBillingSettingsIntoState();
+      loadBranches();
       renderDashboard();
       renderSettingsModules();
       showScreen('screenDashboard');
@@ -8313,7 +8329,7 @@ function loadSettings() {
 var currentSettingsTab = 'general';
 
 function switchSettingsTab(tab) {
-  var tabs = ['general','billing','emr','pharmacy','lis','physio','presence'];
+  var tabs = ['general','branches','billing','emr','pharmacy','lis','physio','presence'];
   for (var i = 0; i < tabs.length; i++) {
     var el = document.getElementById('settingsTab_' + tabs[i]);
     var btn = document.getElementById('settingsTabBtn_' + tabs[i]);
@@ -8321,6 +8337,7 @@ function switchSettingsTab(tab) {
     if (btn) btn.classList.toggle('active', tabs[i] === tab);
   }
   currentSettingsTab = tab;
+  if (tab === 'branches') loadBranches();
 }
 
 function saveTabSettings(tab) {
@@ -13829,6 +13846,157 @@ function doSaveBillingSettings(body) {
   api.post(api.h('/billing-settings'), body).then(function() {
     showNotification('success', 'Settings saved', 'Billing settings updated successfully');
   }).catch(function(e) { showNotification('error', 'Save failed', e.message); });
+}
+
+/* ================================================================
+   BRANCHES MANAGEMENT
+   ================================================================ */
+function loadBranches() {
+  api.get(api.h('/branches')).then(function(data) {
+    var branches = Array.isArray(data) ? data : (data.branches || data.data || []);
+    appState.branches = branches;
+    var container = document.getElementById('branchesListContainer');
+    if (container) renderBranchesList(branches);
+    populateBranchDropdowns(branches);
+  }).catch(function() {
+    var container = document.getElementById('branchesListContainer');
+    if (container) container.innerHTML = '<div style="color:var(--mw-danger);padding:16px">Failed to load branches</div>';
+  });
+}
+
+function renderBranchesList(branches) {
+  var container = document.getElementById('branchesListContainer');
+  if (!branches.length) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--mw-text-3)"><div style="font-size:32px;margin-bottom:8px">\uD83C\uDFE5</div><div>No branches created yet</div><div style="font-size:12px;margin-top:4px">Click + Add Branch to create your first branch</div></div>';
+    return;
+  }
+  var h = '<div style="display:grid;gap:12px">';
+  for (var i = 0; i < branches.length; i++) {
+    var b = branches[i];
+    var mainBadge = b.is_main ? '<span style="background:#059669;color:#fff;font-size:10px;padding:2px 8px;border-radius:100px;margin-left:8px">Main</span>' : '';
+    h += '<div style="background:var(--mw-surface);border:1px solid var(--mw-border);border-radius:var(--mw-radius-lg);padding:16px;display:flex;justify-content:space-between;align-items:flex-start">';
+    h += '<div>';
+    h += '<div style="font-size:15px;font-weight:600;color:var(--mw-text)">' + (b.branch_name || 'Unnamed') + mainBadge + '</div>';
+    if (b.branch_code) h += '<div style="font-size:12px;color:var(--mw-text-3);margin-top:2px">Code: ' + b.branch_code + '</div>';
+    var addrParts = [];
+    if (b.address) addrParts.push(b.address);
+    if (b.city) addrParts.push(b.city);
+    if (b.state) addrParts.push(b.state);
+    if (b.pincode) addrParts.push(b.pincode);
+    if (addrParts.length) h += '<div style="font-size:12px;color:var(--mw-text-2);margin-top:4px">' + addrParts.join(', ') + '</div>';
+    if (b.phone) h += '<div style="font-size:12px;color:var(--mw-text-3);margin-top:2px">Ph: ' + b.phone + '</div>';
+    if (b.email) h += '<div style="font-size:12px;color:var(--mw-text-3)">' + b.email + '</div>';
+    h += '</div>';
+    h += '<div style="display:flex;gap:6px">';
+    h += '<button class="btn btn-outline btn-sm" onclick="openBranchModal(\'' + b.id + '\')">Edit</button>';
+    if (!b.is_main) h += '<button class="btn btn-outline btn-sm" style="color:var(--mw-danger);border-color:var(--mw-danger)" onclick="deleteBranch(\'' + b.id + '\',\'' + (b.branch_name || '').replace(/'/g, "\\'") + '\')">Delete</button>';
+    h += '</div></div>';
+  }
+  h += '</div>';
+  container.innerHTML = h;
+}
+
+function populateBranchDropdowns(branches) {
+  var selects = document.querySelectorAll('#billBranchSelect');
+  for (var s = 0; s < selects.length; s++) {
+    var sel = selects[s];
+    var current = sel.value;
+    sel.innerHTML = '<option value="">Main Branch</option>';
+    for (var i = 0; i < (branches || []).length; i++) {
+      var b = branches[i];
+      sel.innerHTML += '<option value="' + b.id + '">' + (b.branch_name || 'Branch ' + (i + 1)) + '</option>';
+    }
+    if (current) sel.value = current;
+  }
+}
+
+function openBranchModal(branchId) {
+  var branch = null;
+  if (branchId && appState.branches) {
+    for (var i = 0; i < appState.branches.length; i++) {
+      if (String(appState.branches[i].id) === String(branchId)) { branch = appState.branches[i]; break; }
+    }
+  }
+  var isEdit = !!branch;
+  var title = isEdit ? 'Edit Branch' : 'Add New Branch';
+
+  var h = '<div class="modal-title">' + title + '<button class="modal-close" onclick="closeBranchModal()">&times;</button></div>';
+  h += '<div style="display:grid;gap:12px;padding:4px 0">';
+  h += '<div class="form-group"><label>Branch Name *</label><input type="text" id="br_name" value="' + (branch ? (branch.branch_name || '').replace(/"/g, '&quot;') : '') + '" placeholder="e.g. Nizampet Branch"></div>';
+  h += '<div class="form-group"><label>Branch Code</label><input type="text" id="br_code" value="' + (branch ? (branch.branch_code || '').replace(/"/g, '&quot;') : '') + '" placeholder="e.g. NZP" maxlength="10"></div>';
+  h += '<div class="form-group"><label>Address</label><input type="text" id="br_address" value="' + (branch ? (branch.address || '').replace(/"/g, '&quot;') : '') + '" placeholder="Street address"></div>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h += '<div class="form-group"><label>City</label><input type="text" id="br_city" value="' + (branch ? (branch.city || '').replace(/"/g, '&quot;') : '') + '" placeholder="e.g. Hyderabad"></div>';
+  h += '<div class="form-group"><label>State</label><input type="text" id="br_state" value="' + (branch ? (branch.state || '').replace(/"/g, '&quot;') : '') + '" placeholder="e.g. Telangana"></div>';
+  h += '</div>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h += '<div class="form-group"><label>Pincode</label><input type="text" id="br_pincode" value="' + (branch ? (branch.pincode || '') : '') + '" maxlength="6" placeholder="e.g. 500085"></div>';
+  h += '<div class="form-group"><label>Phone</label><input type="tel" id="br_phone" value="' + (branch ? (branch.phone || '') : '') + '" placeholder="e.g. 9876543210"></div>';
+  h += '</div>';
+  h += '<div class="form-group"><label>Email</label><input type="email" id="br_email" value="' + (branch ? (branch.email || '') : '') + '" placeholder="branch@clinic.com"></div>';
+  h += '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px"><input type="checkbox" id="br_main" ' + (branch && branch.is_main ? 'checked' : '') + '> Set as Main Branch</label>';
+  h += '</div>';
+  h += '<div style="display:flex;gap:8px;margin-top:16px">';
+  h += '<button class="btn btn-primary" style="flex:1" onclick="saveBranch(\'' + (branchId || '') + '\')">' + (isEdit ? 'Update Branch' : 'Create Branch') + '</button>';
+  h += '<button class="btn btn-outline" onclick="closeBranchModal()">Cancel</button>';
+  h += '</div>';
+
+  var modal = document.getElementById('branchModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'branchModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = '<div class="modal" style="max-width:520px" id="branchModalBody"></div>';
+    document.body.appendChild(modal);
+  }
+  document.getElementById('branchModalBody').innerHTML = h;
+  modal.style.display = 'flex';
+}
+
+function closeBranchModal() {
+  var modal = document.getElementById('branchModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function saveBranch(branchId) {
+  var name = (document.getElementById('br_name').value || '').trim();
+  if (!name) { showNotification('error', 'Branch name required', 'Please enter a name for this branch.'); return; }
+
+  var body = {
+    branch_name: name,
+    branch_code: (document.getElementById('br_code').value || '').trim(),
+    address: (document.getElementById('br_address').value || '').trim(),
+    city: (document.getElementById('br_city').value || '').trim(),
+    state: (document.getElementById('br_state').value || '').trim(),
+    pincode: (document.getElementById('br_pincode').value || '').trim(),
+    phone: (document.getElementById('br_phone').value || '').trim(),
+    email: (document.getElementById('br_email').value || '').trim(),
+    is_main: document.getElementById('br_main').checked
+  };
+
+  var isEdit = !!branchId;
+  var apiCall = isEdit ?
+    api.put(api.h('/branches/' + branchId), body) :
+    api.post(api.h('/branches'), body);
+
+  apiCall.then(function() {
+    showNotification('success', isEdit ? 'Branch updated' : 'Branch created', name + (isEdit ? ' updated successfully.' : ' has been created.'));
+    closeBranchModal();
+    loadBranches();
+  }).catch(function(err) {
+    showNotification('error', 'Could not save branch', (err && err.message) || 'Please try again.');
+  });
+}
+
+function deleteBranch(branchId, branchName) {
+  showConfirmNotification('warning', 'Delete ' + branchName + '?', 'This branch will be removed. Bills tagged to this branch will keep their branch reference.', function() {
+    api.delete(api.h('/branches/' + branchId)).then(function() {
+      showNotification('success', 'Branch deleted', branchName + ' has been removed.');
+      loadBranches();
+    }).catch(function(err) {
+      showNotification('error', 'Could not delete', (err && err.message) || 'Please try again.');
+    });
+  });
 }
 
 /* ================================================================
