@@ -6689,7 +6689,16 @@ function saveBill() {
       }
     })
     .catch(function(err) {
-      var msg = (err && err.error && err.error.message) ? err.error.message : (err && err.message) ? err.message : 'Please check all fields and try again.';
+      var msg = 'Please check all fields and try again.';
+      if (err) {
+        if (typeof err === 'string') { msg = err; }
+        else if (err.error && typeof err.error === 'string') { msg = err.error; }
+        else if (err.error && err.error.message) { msg = err.error.message; }
+        else if (err.message && typeof err.message === 'string') { msg = err.message; }
+        else if (err.error && err.error.title) { msg = err.error.title; }
+        else { try { msg = JSON.stringify(err).substring(0, 200); } catch(e) { msg = 'Unknown error'; } }
+      }
+      console.error('BILL SAVE ERROR:', err);
       showNotification('error', t('error.bill_save_failed.title') || 'Could not save bill', msg);
     })
     .finally(function() {
