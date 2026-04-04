@@ -3167,6 +3167,13 @@ var LANG_EN = {
   'billing.receive_payment': 'Receive payment',
   'billing.advance.title': 'Advance / Wallet', 'billing.advance.add': 'Add advance',
   'billing.advance.balance': 'Wallet balance', 'billing.advance.refund': 'Refund advance',
+  'billing.error.no_items_title': 'No items added',
+  'billing.error.no_items_message': 'Add at least one item to the bill before saving.',
+  'success.bill_created.title': 'Bill created',
+  'success.bill_created.message': 'Bill #{bill_number} saved successfully.',
+  'billing.error.bill_not_found': 'Bill not found',
+  'billing.error.popup_blocked': 'Popup blocked',
+  'billing.error.no_export_data': 'No data',
 
   // Ledger (Katha book)
   'ledger.title': 'Patient Ledger', 'ledger.total_billed': 'Total billed',
@@ -6204,7 +6211,7 @@ function loadBills() {
       if (rev) rev.textContent = '₹' + total.toLocaleString('en-IN');
       if (pen) pen.textContent = String(pending);
     })
-    .catch(function(err) { showToast('Failed to load bills: ' + err.message, 'error'); });
+    .catch(function(err) { showNotification('error', t('error.server_error.title'), t('error.server_error.message')); });
 }
 
 function renderBillTable(bills) {
@@ -6591,7 +6598,7 @@ function clearBillPatient() {
 /* ── Save bill ───────────────────────────────────────────────────────── */
 function saveBill() {
   if (billItems.length === 0) {
-    showToast('Add at least one item to the bill', 'error');
+    showNotification('error', 'No items added', 'Add at least one item to the bill before saving.');
     return;
   }
 
@@ -6689,7 +6696,7 @@ function saveBill() {
   api.post(api.h('/bills'), body)
     .then(function(data) {
       var bill = data.bill || data;
-      showToast('Bill saved! ' + (bill.bill_number || ''), 'success');
+      showNotification('success', 'Bill created', 'Bill #' + (bill.bill_number || '') + ' saved successfully.');
       var printData = Object.assign({}, bill);
       printData.branch_id = branchId;
       printData.amount_in_words = amountInWords(printData.total || printData.total_amount || total);
@@ -6756,7 +6763,7 @@ function saveBill() {
 }
 
 function printBill() {
-  if (billItems.length === 0) { showToast('Add items to the bill first', 'error'); return; }
+  if (billItems.length === 0) { showNotification('error', 'No items added', 'Add items to the bill before printing.'); return; }
   var subtotal = 0;
   for (var i = 0; i < billItems.length; i++) { subtotal += billItems[i].qty * billItems[i].rate; }
   var discount = Number(document.getElementById('billDiscount').value) || 0;
@@ -6797,7 +6804,7 @@ function printBillById(billId) {
     if (String(billCache[i].id || billCache[i].bill_id) === String(billId)) { bill = billCache[i]; break; }
   }
   if (bill) printBillHTML(bill);
-  else showToast('Bill not found', 'error');
+  else showNotification('error', 'Bill not found', 'The bill may have been deleted or is not available.');
 }
 
 /* ── View Bill Detail ─────────────────────────────────────────── */
@@ -6809,7 +6816,7 @@ function viewBillDetail(billId) {
       bill = billCache[i]; break;
     }
   }
-  if (!bill) { showToast('Bill not found', 'error'); return; }
+  if (!bill) { showNotification('error', 'Bill not found', 'The bill may have been deleted or is not available.'); return; }
 
   var items = bill.items || [];
   if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
@@ -7058,7 +7065,7 @@ function printBillHTML(printData) {
     win.document.close();
     setTimeout(function() { win.print(); }, 300);
   } else {
-    showToast('Please allow popups for this site to print receipts', 'warning');
+    showNotification('warning', 'Popup blocked', 'Please allow popups for this site to print receipts.');
   }
 }
 
@@ -7389,7 +7396,7 @@ function printDailyReport() {
 
 function exportMonthlyCSV() {
   var bills = colMonthlyData;
-  if (!bills.length) { showToast('No data to export', 'error'); return; }
+  if (!bills.length) { showNotification('info', 'No data', 'No collection data available for the selected period.'); return; }
   var csv = 'Bill Number,Patient,Amount,GST,Total,Payment Mode,Status,Date\n';
   for (var i = 0; i < bills.length; i++) {
     var b = bills[i];
@@ -10656,9 +10663,9 @@ async function completeConsultation(tokenId, patientId) {
     );
     var bill = billRes;
     showBillDraftPreview(bill);
-    showToast('Consultation complete! Draft bill created.', 'success');
+    showNotification('success', 'Consultation complete', 'Draft bill created successfully.');
   } catch(e) {
-    showToast('Consultation complete! Bill creation failed: ' + e.message, 'error');
+    showNotification('error', 'Bill creation failed', 'Consultation saved but bill could not be created.');
   }
 
   if (v44State.consultTimer) clearInterval(v44State.consultTimer);
